@@ -1,0 +1,17 @@
+# File bien dich - khong bao gio dua len git
+bin/
+build/
+out/
+dist/
+*.class
+
+# NetBeans
+nbproject/private/
+
+# VS Code - giu settings.json de may khac mo duoc
+.vscode/*
+!.vscode/settings.json
+
+# He dieu hanh
+.DS_Store
+Thumbs.db
