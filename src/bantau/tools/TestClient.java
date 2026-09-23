@@ -9,7 +9,7 @@ import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 
 /**
- * CLIENT DONG LENH DUNG DE KIEM THU
+ * CLIENT DÒNG LỆNH DÙNG ĐỂ KIỂM THỬ
  *
  * <p>Thay cho telnet: ket noi toi server, cho phep go tin nhan va hien thi
  * moi ban tin server gui ve.
@@ -31,8 +31,8 @@ public class TestClient {
         int port = args.length > 1 ? Integer.parseInt(args[1]) : 5000;
 
         Socket socket = new Socket(host, port);
-        System.out.println("Da ket noi toi " + host + ":" + port);
-        System.out.println("Go tin nhan roi Enter. Go QUIT de thoat.");
+        System.out.println("Đã kết nối tới " + host + ":" + port);
+        System.out.println("Gõ QUIT để thoát");
         System.out.println("--------------------------------------------");
 
         BufferedReader in = new BufferedReader(
@@ -40,7 +40,7 @@ public class TestClient {
         PrintWriter out = new PrintWriter(
                 new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8));
 
-        // THREAD PHU: chi lam mot viec la cho ban tin tu server ve roi in ra.
+        // THREAD PHỤ: Cho tin từ server rồi in ra
         Thread reader = new Thread(() -> {
             try {
                 String line;
@@ -53,11 +53,11 @@ public class TestClient {
             }
         }, "reader");
 
-        // Thread nen: tu ket thuc khi chuong trinh chinh thoat.
+        // Thread nền: Tự kết thúc khi chương trình chính thoát
         reader.setDaemon(true);
         reader.start();
 
-        // THREAD CHINH: cho nguoi dung go phim roi gui len server.
+        // THREAD chính: Cho người dùng nhập rồi gửi lên server
         BufferedReader keyboard = new BufferedReader(
                 new InputStreamReader(System.in, StandardCharsets.UTF_8));
         String line;
@@ -70,6 +70,6 @@ public class TestClient {
         }
 
         socket.close();
-        System.out.println("Da thoat.");
+        System.out.println("Đã thoát!");
     }
 }
