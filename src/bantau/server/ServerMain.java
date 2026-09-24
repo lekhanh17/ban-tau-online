@@ -1,63 +1,54 @@
 package bantau.server;
 
+import bantau.common.Protocol;
+
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.Set;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * GIAI DOAN 2 - SERVER DA LUONG
+ * GIAI DOAN 3 - SERVER CO DANG NHAP
  *
- * <p>Khac Giai doan 1 o ba diem:
+ * <p>Khac Giai doan 2 o hai diem:
  * <ul>
- *   <li>accept() nam trong vong lap while(true) nen nhan duoc nhieu client.</li>
- *   <li>Moi client duoc giao cho mot thread rieng lay tu thread pool.</li>
- *   <li>Co danh sach client dang online de gui ban tin cho tat ca (broadcast).</li>
+ *   <li>Moi ban tin di theo khuon dang LENH|thamso thay vi text tu do.</li>
+ *   <li>Nguoi choi phai LOGIN voi ten duy nhat truoc khi lam viec khac.</li>
  * </ul>
- *
- * <p>Cach kiem thu: chay file nay, sau do mo 3 cua so CMD cung go
- * "telnet 127.0.0.1 5000". Go chu o cua so nay, ca 3 cua so deu thay.
  */
 public class ServerMain {
 
-    public static final int PORT = 5000;
-
     /**
-     * Danh sach client dang ket noi.
+     * Danh sach nguoi da dang nhap: ten viet thuong -> handler.
      *
-     * <p>Day la du lieu CHIA SE giua nhieu thread: thread accept them vao,
-     * thread cua tung client xoa ra, va moi lan broadcast lai duyet qua no.
-     * Dung ArrayList thuong se gap ConcurrentModificationException hoac mat
-     * du lieu. ConcurrentHashMap.newKeySet() cho phep vua duyet vua sua an toan.
+     * <p>Vi sao khoa la ten VIET THUONG? De chan duoc truong hop hai nguoi
+     * dung "Khanh" va "khanh" - ve mat hien thi la hai ten khac nhau nhung
+     * nguoi choi se nham lan.
+     *
+     * <p>putIfAbsent() cua ConcurrentHashMap la thao tac NGUYEN TU: kiem tra
+     * va them vao chi trong mot buoc. Neu tach thanh "if (!chua co) then them"
+     * thi hai thread co the cung vuot qua buoc kiem tra roi cung them vao.
      */
-    private static final Set<ClientHandler> CLIENTS = ConcurrentHashMap.newKeySet();
+    private static final Map<String, ClientHandler> USERS = new ConcurrentHashMap<>();
 
     public static void main(String[] args) {
-
-        // Thread pool tu quan ly viec tao va tai su dung thread.
-        // newCachedThreadPool: tao thread moi khi can, thu hoi thread ranh sau 60 giay.
+        int port = args.length > 0 ? Integer.parseInt(args[0]) : Protocol.DEFAULT_PORT;
         ExecutorService pool = Executors.newCachedThreadPool();
 
-        try (ServerSocket server = new ServerSocket(PORT)) {
-            System.out.println("=== SERVER GIAI DOAN 2 ===");
-            System.out.println("Dang lang nghe tai cong " + PORT + ". Nhan Ctrl+C de dung.");
-            System.out.println("Mo nhieu cua so CMD va go: telnet 127.0.0.1 " + PORT);
+        try (ServerSocket server = new ServerSocket(port)) {
+            System.out.println("=== SERVER GIAI DOAN 3 ===");
+            System.out.println("Dang lang nghe tai cong " + port + ".");
+            System.out.println("Client phai go: LOGIN|<ten>  truoc khi lam viec khac.");
 
             while (true) {
-                // Vong lap nay chi lam mot viec: don khach roi giao cho thread khac.
-                // Nho vay no quay lai accept() ngay, san sang don client tiep theo.
                 Socket socket = server.accept();
                 socket.setTcpNoDelay(true);
-
                 try {
-                    ClientHandler handler = new ClientHandler(socket);
-                    CLIENTS.add(handler);
-                    pool.execute(handler);
+                    pool.execute(new ClientHandler(socket));
                 } catch (IOException e) {
-                    // Mot client loi thi bo qua client do, server van chay tiep.
                     System.out.println("Khong tao duoc handler: " + e.getMessage());
                     socket.close();
                 }
@@ -70,20 +61,42 @@ public class ServerMain {
         }
     }
 
-    /** So nguoi dang online. */
+    /**
+     * Dang ky ten dang nhap.
+     *
+     * @return true neu thanh cong, false neu ten da co nguoi dung
+     */
+    public static boolean registerUser(String name, ClientHandler handler) {
+        return USERS.putIfAbsent(name.toLowerCase(), handler) == null;
+    }
+
+    /** Bo ten khoi danh sach khi nguoi choi thoat. */
+    public static void unregisterUser(String name) {
+        if (name != null) {
+            USERS.remove(name.toLowerCase());
+        }
+    }
+
     public static int onlineCount() {
-        return CLIENTS.size();
+        return USERS.size();
     }
 
-    /** Bo mot client khoi danh sach khi ho ngat ket noi. */
-    public static void removeClient(ClientHandler handler) {
-        CLIENTS.remove(handler);
+    /** Danh sach ten nguoi dang online, ngan cach bang dau phay. */
+    public static String onlineNames() {
+        StringBuilder sb = new StringBuilder();
+        for (ClientHandler c : USERS.values()) {
+            if (sb.length() > 0) {
+                sb.append(',');
+            }
+            sb.append(c.getUsername());
+        }
+        return sb.toString();
     }
 
-    /** Gui mot ban tin toi TAT CA client dang online. */
+    /** Gui mot ban tin toi TAT CA nguoi da dang nhap. */
     public static void broadcast(String msg) {
         System.out.println("[BROADCAST] " + msg);
-        for (ClientHandler c : CLIENTS) {
+        for (ClientHandler c : USERS.values()) {
             c.send(msg);
         }
     }
