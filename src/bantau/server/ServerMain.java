@@ -6,33 +6,29 @@ import bantau.common.Protocol;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * SERVER - trao doi bang doi tuong Java (Java Serialization) tren nen TCP.
- *
- * <p>Tang giao van: TCP, cong 5000 - giao thuc chuan co san.
- * Tang ung dung: gui/nhan doi tuong {@link Packet} bang co che tuan tu hoa
- * cua Java, khong tu dinh nghia khuon dang chuoi.
+ * SERVER - TCP + Java Serialization, co lobby nhieu phong choi.
  */
 public class ServerMain {
 
-    /**
-     * Danh sach nguoi da dang nhap: ten viet thuong -> handler.
-     * putIfAbsent() la thao tac nguyen tu, chan duoc hai nguoi cung dang ky
-     * mot ten trong cung mot khoanh khac.
-     */
+    /** Nguoi da dang nhap: ten viet thuong -> handler. */
     private static final Map<String, ClientHandler> USERS = new ConcurrentHashMap<>();
+
+    /** Quan ly phong. Dung chung cho toan server. */
+    private static final RoomManager ROOMS = new RoomManager();
 
     public static void main(String[] args) {
         int port = args.length > 0 ? Integer.parseInt(args[0]) : Protocol.DEFAULT_PORT;
         ExecutorService pool = Executors.newCachedThreadPool();
 
         try (ServerSocket server = new ServerSocket(port)) {
-            System.out.println("=== SERVER (Java Serialization) ===");
+            System.out.println("=== SERVER GIAI DOAN 4 - LOBBY NHIEU PHONG ===");
             System.out.println("Dang lang nghe tai cong " + port + ".");
 
             while (true) {
@@ -53,6 +49,14 @@ public class ServerMain {
         }
     }
 
+    public static RoomManager rooms() {
+        return ROOMS;
+    }
+
+    public static Collection<ClientHandler> getUsers() {
+        return USERS.values();
+    }
+
     public static boolean registerUser(String name, ClientHandler handler) {
         return USERS.putIfAbsent(name.toLowerCase(), handler) == null;
     }
@@ -67,7 +71,6 @@ public class ServerMain {
         return USERS.size();
     }
 
-    /** Danh sach ten nguoi dang online, ngan cach bang dau phay. */
     public static String onlineNames() {
         StringBuilder sb = new StringBuilder();
         for (ClientHandler c : USERS.values()) {
@@ -79,7 +82,7 @@ public class ServerMain {
         return sb.toString();
     }
 
-    /** Gui mot ban tin toi tat ca nguoi da dang nhap. */
+    /** Gui toi tat ca nguoi da dang nhap. */
     public static void broadcast(Packet packet) {
         System.out.println("[BROADCAST] " + packet);
         for (ClientHandler c : USERS.values()) {

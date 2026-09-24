@@ -13,7 +13,13 @@ import java.net.SocketException;
 import java.util.regex.Pattern;
 
 /**
- * Mot thread phuc vu mot client, trao doi bang DOI TUONG thay vi chuoi text.
+ * Mot thread phuc vu mot client.
+ *
+ * <p>Handler co HAI TRANG THAI chong len nhau:
+ * <ul>
+ *   <li>Chua dang nhap / da dang nhap</li>
+ *   <li>Dang o lobby / dang o trong mot phong</li>
+ * </ul>
  */
 public class ClientHandler implements Runnable {
 
@@ -25,17 +31,14 @@ public class ClientHandler implements Runnable {
 
     /** null nghia la CHUA dang nhap. */
     private volatile String username;
+    /** null nghia la dang o lobby, chua vao phong nao. */
+    private volatile Room room;
+    /** Danh dau ket noi da dong - khong con gui duoc gi nua. */
+    private volatile boolean closed;
 
     /**
-     * THU TU TAO LUONG RAT QUAN TRONG.
-     *
-     * <p>Constructor cua ObjectOutputStream ghi mot "header" vao luong ra.
-     * Constructor cua ObjectInputStream thi DUNG CHO doc header cua ben kia.
-     * Neu ca hai ben cung tao ObjectInputStream truoc thi ca hai cung ngoi cho
-     * nhau - chuong trinh treo vinh vien, khong bao loi gi.
-     *
-     * <p>Quy tac: tao ObjectOutputStream truoc, goi flush() de day header di,
-     * roi moi tao ObjectInputStream. Ca server va client deu lam nhu vay.
+     * THU TU TAO LUONG RAT QUAN TRONG: ObjectOutputStream truoc, flush(),
+     * roi moi ObjectInputStream. Nguoc lai se treo vinh vien khong bao loi.
      */
     public ClientHandler(Socket socket) throws IOException {
         this.socket = socket;
@@ -48,18 +51,26 @@ public class ClientHandler implements Runnable {
         return username == null ? "?" : username;
     }
 
+    public Room getRoom() {
+        return room;
+    }
+
+    public void setRoom(Room room) {
+        this.room = room;
+    }
+
     /** Gui mot ban tin. Dong bo vi nhieu thread cung goi khi broadcast. */
     public synchronized void send(Packet packet) {
+        // Client da ngat thi bo qua, tranh in day man hinh loi "Broken pipe".
+        if (closed) {
+            return;
+        }
         try {
             out.writeObject(packet);
             out.flush();
-            // reset() xoa bo nho dem cac doi tuong da gui.
-            // Neu khong goi, ObjectOutputStream se gui "tham chieu toi doi tuong cu"
-            // thay vi noi dung moi khi gap doi tuong da tung gui - ben nhan se
-            // nhan duoc du lieu cu. Loi nay rat kho tim.
+            // Xoa bo dem doi tuong, tranh gui lai tham chieu cu.
             out.reset();
         } catch (IOException e) {
-            // Ghi that bai nghia la socket da hong, khong lam gi them duoc.
             System.out.println("Khong gui duoc toi " + getUsername() + ": " + e.getMessage());
         }
     }
@@ -92,27 +103,19 @@ public class ClientHandler implements Runnable {
             }
 
         } catch (EOFException e) {
-            // Client dong ket noi mot cach binh thuong (goi socket.close()).
             System.out.println(getUsername() + " da dong ket noi.");
-
         } catch (SocketException e) {
-            // Client bi tat dot ngot - he dieu hanh gui goi RST.
             System.out.println(getUsername() + " mat ket noi dot ngot: " + e.getMessage());
-
         } catch (IOException | ClassNotFoundException e) {
-            // ClassNotFoundException: ben kia gui mot lop ma ben nay khong co.
-            // Thuong do server va client duoc bien dich tu hai phien ban code khac nhau.
             System.out.println(getUsername() + " loi: " + e);
-
         } finally {
             donDep();
         }
     }
 
-    /** Phan giai ban tin. Chia hai vung: truoc va sau dang nhap. */
     private void handle(Packet packet) {
 
-        // ----- VUNG 1: chua dang nhap, chi cho phep LOGIN -----
+        // ----- Chua dang nhap: chi cho phep LOGIN -----
         if (username == null) {
             if (packet.type() == PacketType.LOGIN) {
                 xuLyDangNhap(packet.arg(0));
@@ -122,28 +125,34 @@ public class ClientHandler implements Runnable {
             return;
         }
 
-        // ----- VUNG 2: da dang nhap -----
+        // ----- Da dang nhap -----
         switch (packet.type()) {
             case LOGIN ->
                     sendError(Protocol.E_BAD_STATE, "Ban da dang nhap voi ten " + username);
 
-            case CHAT -> {
-                String noiDung = packet.arg(0);
-                if (!noiDung.isBlank()) {
-                    ServerMain.broadcast(Packet.of(PacketType.CHAT_MSG, username, noiDung));
-                }
-            }
+            case CHAT -> xuLyChat(packet.arg(0));
 
             case WHO ->
                     send(Packet.of(PacketType.WHO_LIST, ServerMain.onlineNames()));
 
-            // Cac loai con lai la ban tin chi server moi duoc gui.
-            // Client binh thuong khong gui duoc, chi client tu viet lai moi gui.
+            case ROOM_LIST ->
+                    ServerMain.rooms().sendRoomList(this);
+
+            case ROOM_CREATE -> xuLyTaoPhong(packet.arg(0));
+
+            case ROOM_JOIN -> xuLyVaoPhong(packet.intArg(0, -1));
+
+            case ROOM_LEAVE -> xuLyRoiPhong();
+
             default ->
                     sendError(Protocol.E_UNKNOWN_CMD,
                             "Client khong duoc phep gui ban tin loai " + packet.type());
         }
     }
+
+    /* ------------------------------------------------------------------ */
+    /* Cac lenh cu the                                                    */
+    /* ------------------------------------------------------------------ */
 
     private void xuLyDangNhap(String ten) {
         String n = ten == null ? "" : ten.trim();
@@ -154,7 +163,6 @@ public class ClientHandler implements Runnable {
                             + " ky tu, chi gom chu cai, so va dau gach duoi");
             return;
         }
-
         if (!ServerMain.registerUser(n, this)) {
             sendError(Protocol.E_NAME_TAKEN, "Ten '" + n + "' dang co nguoi khac dung");
             return;
@@ -164,17 +172,86 @@ public class ClientHandler implements Runnable {
         send(Packet.of(PacketType.LOGIN_OK, n));
         send(Packet.of(PacketType.SYSTEM,
                 "Dang co " + ServerMain.onlineCount() + " nguoi online. "
-                        + "Lenh: CHAT <noi dung>, WHO, QUIT"));
-        ServerMain.broadcast(Packet.of(PacketType.SYSTEM, n + " da vao phong"));
+                        + "Lenh: ROOMS, CREATE <ten>, JOIN <id>, LEAVE, CHAT <noi dung>, WHO, QUIT"));
+        ServerMain.rooms().sendRoomList(this);
         System.out.println("Dang nhap: " + n + " (online: " + ServerMain.onlineCount() + ")");
+    }
+
+    /**
+     * Chat: neu dang o trong phong thi chi nguoi cung phong nghe thay,
+     * neu dang o lobby thi tat ca nguoi o lobby nghe thay.
+     */
+    private void xuLyChat(String noiDung) {
+        if (noiDung == null || noiDung.isBlank()) {
+            return;
+        }
+        Packet msg = Packet.of(PacketType.CHAT_MSG, username, noiDung);
+
+        Room r = room;
+        if (r != null) {
+            r.broadcast(msg);
+        } else {
+            ServerMain.broadcast(msg);
+        }
+    }
+
+    private void xuLyTaoPhong(String tenPhong) {
+        if (room != null) {
+            sendError(Protocol.E_ALREADY_IN_ROOM, "Ban dang o trong mot phong");
+            return;
+        }
+        String n = (tenPhong == null || tenPhong.isBlank())
+                ? "Phong cua " + username
+                : tenPhong.trim();
+        if (n.length() > Protocol.ROOM_NAME_MAX) {
+            n = n.substring(0, Protocol.ROOM_NAME_MAX);
+        }
+
+        Room r = ServerMain.rooms().createRoom(n);
+        String err = r.join(this);
+        if (err != null) {
+            sendError(err, "Khong vao duoc phong vua tao");
+        }
+    }
+
+    private void xuLyVaoPhong(int roomId) {
+        if (room != null) {
+            sendError(Protocol.E_ALREADY_IN_ROOM, "Ban dang o trong mot phong");
+            return;
+        }
+        Room r = ServerMain.rooms().getRoom(roomId);
+        if (r == null) {
+            sendError(Protocol.E_ROOM_NOT_FOUND, "Phong #" + roomId + " khong ton tai");
+            return;
+        }
+        String err = r.join(this);
+        if (err != null) {
+            sendError(err, "Khong vao duoc phong #" + roomId);
+        }
+    }
+
+    private void xuLyRoiPhong() {
+        Room r = room;
+        if (r == null) {
+            sendError(Protocol.E_NOT_IN_ROOM, "Ban chua o trong phong nao");
+            return;
+        }
+        r.leave(this);
+        ServerMain.rooms().sendRoomList(this);
     }
 
     /** Luon chay du thoat binh thuong hay do loi. */
     private void donDep() {
+        closed = true;
+        Room r = room;
+        if (r != null) {
+            // Rat quan trong: client tat dot ngot van phai duoc go khoi phong,
+            // neu khong phong se ket vinh vien voi mot nguoi da chet.
+            r.leave(this);
+        }
         String ten = username;
         if (ten != null) {
             ServerMain.unregisterUser(ten);
-            ServerMain.broadcast(Packet.of(PacketType.SYSTEM, ten + " da roi di"));
         }
         try {
             socket.close();
@@ -182,6 +259,7 @@ public class ClientHandler implements Runnable {
             // khong con gi de lam
         }
         System.out.println(getUsername() + " da ngat. Con lai "
-                + ServerMain.onlineCount() + " nguoi.");
+                + ServerMain.onlineCount() + " nguoi, "
+                + ServerMain.rooms().roomCount() + " phong.");
     }
 }

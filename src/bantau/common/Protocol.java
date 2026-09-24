@@ -2,9 +2,6 @@ package bantau.common;
 
 /**
  * Cac tham so va rang buoc dung chung cho server va client.
- *
- * <p>Ten lenh da chuyen sang enum {@link PacketType}, lop nay chi con giu
- * tham so ket noi, ma loi va quy tac dat ten.
  */
 public final class Protocol {
 
@@ -16,6 +13,12 @@ public final class Protocol {
     public static final int DEFAULT_PORT = 5000;
     public static final String DEFAULT_HOST = "127.0.0.1";
 
+    /* ===== Gioi han phong ===== */
+
+    /** Moi phong toi da 2 nguoi choi. */
+    public static final int MAX_PLAYERS_PER_ROOM = 2;
+    public static final int ROOM_NAME_MAX = 30;
+
     /* ===== Ma loi ===== */
 
     public static final String E_NAME_TAKEN = "E_NAME_TAKEN";
@@ -23,6 +26,11 @@ public final class Protocol {
     public static final String E_NOT_LOGGED_IN = "E_NOT_LOGGED_IN";
     public static final String E_BAD_STATE = "E_BAD_STATE";
     public static final String E_UNKNOWN_CMD = "E_UNKNOWN_CMD";
+
+    public static final String E_ROOM_NOT_FOUND = "E_ROOM_NOT_FOUND";
+    public static final String E_ROOM_FULL = "E_ROOM_FULL";
+    public static final String E_ALREADY_IN_ROOM = "E_ALREADY_IN_ROOM";
+    public static final String E_NOT_IN_ROOM = "E_NOT_IN_ROOM";
 
     /* ===== Rang buoc ten nguoi choi ===== */
 
