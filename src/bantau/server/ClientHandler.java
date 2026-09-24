@@ -1,59 +1,71 @@
 package bantau.server;
 
-import bantau.common.Message;
+import bantau.common.Packet;
+import bantau.common.PacketType;
 import bantau.common.Protocol;
 
-import java.io.BufferedReader;
+import java.io.EOFException;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
+import java.net.SocketException;
 import java.util.regex.Pattern;
 
 /**
- * GIAI DOAN 3 - Mot thread phuc vu mot client, co phan giai lenh.
- *
- * <p>Diem moi: handler co TRANG THAI. Truoc khi dang nhap thi chi chap nhan
- * lenh LOGIN, sau khi dang nhap moi mo cac lenh con lai. Day la mam mong cua
- * may trang thai se dung o cac giai doan sau (cho phong, dat tau, danh nhau).
+ * Mot thread phuc vu mot client, trao doi bang DOI TUONG thay vi chuoi text.
  */
 public class ClientHandler implements Runnable {
 
-    /** Bien dich san mau ten cho nhanh, thay vi bien dich lai moi lan kiem tra. */
     private static final Pattern NAME_RULE = Pattern.compile(Protocol.NAME_PATTERN);
 
     private final Socket socket;
-    private final BufferedReader in;
-    private final PrintWriter out;
+    private final ObjectOutputStream out;
+    private final ObjectInputStream in;
 
-    /**
-     * Ten nguoi choi. null nghia la CHUA dang nhap.
-     * Dung volatile vi thread khac co the doc bien nay khi broadcast.
-     */
+    /** null nghia la CHUA dang nhap. */
     private volatile String username;
 
+    /**
+     * THU TU TAO LUONG RAT QUAN TRONG.
+     *
+     * <p>Constructor cua ObjectOutputStream ghi mot "header" vao luong ra.
+     * Constructor cua ObjectInputStream thi DUNG CHO doc header cua ben kia.
+     * Neu ca hai ben cung tao ObjectInputStream truoc thi ca hai cung ngoi cho
+     * nhau - chuong trinh treo vinh vien, khong bao loi gi.
+     *
+     * <p>Quy tac: tao ObjectOutputStream truoc, goi flush() de day header di,
+     * roi moi tao ObjectInputStream. Ca server va client deu lam nhu vay.
+     */
     public ClientHandler(Socket socket) throws IOException {
         this.socket = socket;
-        this.in = new BufferedReader(
-                new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
-        this.out = new PrintWriter(
-                new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8));
+        this.out = new ObjectOutputStream(socket.getOutputStream());
+        this.out.flush();
+        this.in = new ObjectInputStream(socket.getInputStream());
     }
 
     public String getUsername() {
         return username == null ? "?" : username;
     }
 
-    /** Gui ban tin xuong client nay. Dong bo vi nhieu thread cung goi. */
-    public synchronized void send(String msg) {
-        out.print(msg + "\n");
-        out.flush();
+    /** Gui mot ban tin. Dong bo vi nhieu thread cung goi khi broadcast. */
+    public synchronized void send(Packet packet) {
+        try {
+            out.writeObject(packet);
+            out.flush();
+            // reset() xoa bo nho dem cac doi tuong da gui.
+            // Neu khong goi, ObjectOutputStream se gui "tham chieu toi doi tuong cu"
+            // thay vi noi dung moi khi gap doi tuong da tung gui - ben nhan se
+            // nhan duoc du lieu cu. Loi nay rat kho tim.
+            out.reset();
+        } catch (IOException e) {
+            // Ghi that bai nghia la socket da hong, khong lam gi them duoc.
+            System.out.println("Khong gui duoc toi " + getUsername() + ": " + e.getMessage());
+        }
     }
 
     private void sendError(String code, String moTa) {
-        send(Message.build(Protocol.S_ERROR, code, moTa));
+        send(Packet.of(PacketType.ERROR, code, moTa));
     }
 
     /* ------------------------------------------------------------------ */
@@ -64,79 +76,75 @@ public class ClientHandler implements Runnable {
     public void run() {
         System.out.println("Ket noi moi tu " + socket.getRemoteSocketAddress());
         try {
-            send(Message.build(Protocol.S_SYSTEM,
-                    "Chao mung! Hay dang nhap: LOGIN|<ten cua ban>"));
+            send(Packet.of(PacketType.SYSTEM, "Chao mung! Hay dang nhap bang lenh LOGIN."));
 
-            String line;
-            while ((line = in.readLine()) != null) {
-                Message msg = Message.parse(line);
-                if (msg == null) {
+            while (true) {
+                Object obj = in.readObject();
+                if (!(obj instanceof Packet packet)) {
                     continue;
                 }
-                System.out.println("  <-- " + getUsername() + " : " + msg);
+                System.out.println("  <-- " + getUsername() + " : " + packet);
 
-                if (Protocol.C_QUIT.equals(msg.command())) {
+                if (packet.type() == PacketType.QUIT) {
                     break;
                 }
-                handle(msg);
+                handle(packet);
             }
 
-        } catch (IOException e) {
-            System.out.println(getUsername() + " mat ket noi: " + e.getMessage());
+        } catch (EOFException e) {
+            // Client dong ket noi mot cach binh thuong (goi socket.close()).
+            System.out.println(getUsername() + " da dong ket noi.");
+
+        } catch (SocketException e) {
+            // Client bi tat dot ngot - he dieu hanh gui goi RST.
+            System.out.println(getUsername() + " mat ket noi dot ngot: " + e.getMessage());
+
+        } catch (IOException | ClassNotFoundException e) {
+            // ClassNotFoundException: ben kia gui mot lop ma ben nay khong co.
+            // Thuong do server va client duoc bien dich tu hai phien ban code khac nhau.
+            System.out.println(getUsername() + " loi: " + e);
 
         } finally {
             donDep();
         }
     }
 
-    /**
-     * PHAN GIAI LENH - trai tim cua giao thuc.
-     *
-     * <p>Chia lam hai vung: truoc dang nhap va sau dang nhap.
-     */
-    private void handle(Message msg) {
-        String cmd = msg.command();
+    /** Phan giai ban tin. Chia hai vung: truoc va sau dang nhap. */
+    private void handle(Packet packet) {
 
         // ----- VUNG 1: chua dang nhap, chi cho phep LOGIN -----
         if (username == null) {
-            if (Protocol.C_LOGIN.equals(cmd)) {
-                xuLyDangNhap(msg.arg(0));
+            if (packet.type() == PacketType.LOGIN) {
+                xuLyDangNhap(packet.arg(0));
             } else {
-                sendError(Protocol.E_NOT_LOGGED_IN,
-                        "Ban phai dang nhap truoc bang lenh LOGIN|<ten>");
+                sendError(Protocol.E_NOT_LOGGED_IN, "Ban phai dang nhap truoc");
             }
             return;
         }
 
         // ----- VUNG 2: da dang nhap -----
-        switch (cmd) {
-            case Protocol.C_LOGIN ->
+        switch (packet.type()) {
+            case LOGIN ->
                     sendError(Protocol.E_BAD_STATE, "Ban da dang nhap voi ten " + username);
 
-            case Protocol.C_CHAT -> {
-                String noiDung = msg.tail(0);
+            case CHAT -> {
+                String noiDung = packet.arg(0);
                 if (!noiDung.isBlank()) {
-                    ServerMain.broadcast(Message.build(Protocol.S_CHAT, username, noiDung));
+                    ServerMain.broadcast(Packet.of(PacketType.CHAT_MSG, username, noiDung));
                 }
             }
 
-            case Protocol.C_WHO ->
-                    send(Message.build(Protocol.S_WHO, ServerMain.onlineNames()));
+            case WHO ->
+                    send(Packet.of(PacketType.WHO_LIST, ServerMain.onlineNames()));
 
+            // Cac loai con lai la ban tin chi server moi duoc gui.
+            // Client binh thuong khong gui duoc, chi client tu viet lai moi gui.
             default ->
-                    sendError(Protocol.E_UNKNOWN_CMD, "Lenh khong ton tai: " + cmd);
+                    sendError(Protocol.E_UNKNOWN_CMD,
+                            "Client khong duoc phep gui ban tin loai " + packet.type());
         }
     }
 
-    /**
-     * Kiem tra va chap nhan ten dang nhap.
-     *
-     * <p>Hai tang kiem tra:
-     * <ol>
-     *   <li>Dinh dang co hop le khong (do dai, ky tu cho phep).</li>
-     *   <li>Ten da co nguoi khac dung chua.</li>
-     * </ol>
-     */
     private void xuLyDangNhap(String ten) {
         String n = ten == null ? "" : ten.trim();
 
@@ -153,11 +161,11 @@ public class ClientHandler implements Runnable {
         }
 
         username = n;
-        send(Message.build(Protocol.S_LOGIN_OK, n));
-        send(Message.build(Protocol.S_SYSTEM,
+        send(Packet.of(PacketType.LOGIN_OK, n));
+        send(Packet.of(PacketType.SYSTEM,
                 "Dang co " + ServerMain.onlineCount() + " nguoi online. "
-                        + "Lenh: CHAT|<noi dung>, WHO, QUIT"));
-        ServerMain.broadcast(Message.build(Protocol.S_SYSTEM, n + " da vao phong"));
+                        + "Lenh: CHAT <noi dung>, WHO, QUIT"));
+        ServerMain.broadcast(Packet.of(PacketType.SYSTEM, n + " da vao phong"));
         System.out.println("Dang nhap: " + n + " (online: " + ServerMain.onlineCount() + ")");
     }
 
@@ -166,7 +174,7 @@ public class ClientHandler implements Runnable {
         String ten = username;
         if (ten != null) {
             ServerMain.unregisterUser(ten);
-            ServerMain.broadcast(Message.build(Protocol.S_SYSTEM, ten + " da roi di"));
+            ServerMain.broadcast(Packet.of(PacketType.SYSTEM, ten + " da roi di"));
         }
         try {
             socket.close();
