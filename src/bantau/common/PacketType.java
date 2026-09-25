@@ -2,12 +2,6 @@ package bantau.common;
 
 /**
  * Cac loai ban tin trao doi giua client va server.
- *
- * <p>Dung enum thay cho chuoi co hai cai loi lon:
- * <ul>
- *   <li>Go sai ten la bao loi ngay luc bien dich.</li>
- *   <li>Khong the tao ra mot loai ban tin khong ton tai.</li>
- * </ul>
  */
 public enum PacketType {
 
@@ -17,39 +11,59 @@ public enum PacketType {
     LOGIN,
     /** args[0] = noi dung tin nhan. */
     CHAT,
-    /** Khong tham so. Hoi danh sach nguoi online. */
+    /** Khong tham so. */
     WHO,
-    /** Khong tham so. Thoat lich su. */
+    /** Khong tham so. */
     QUIT,
 
-    /** Khong tham so. Hoi danh sach phong. */
+    /** Khong tham so. */
     ROOM_LIST,
-    /** args[0] = ten phong muon tao. */
+    /** args[0] = ten phong. */
     ROOM_CREATE,
-    /** args[0] = id phong muon vao. */
+    /** args[0] = id phong. */
     ROOM_JOIN,
-    /** Khong tham so. Roi phong hien tai. */
+    /** Khong tham so. */
     ROOM_LEAVE,
+
+    /** payload = Board da dat du 5 tau. Bao san sang vao tran. */
+    READY,
+    /** args[0] = x, args[1] = y. Ban vao ban do doi thu. */
+    FIRE,
 
     /* ===== Server gui xuong Client ===== */
 
-    /** args[0] = ten da duoc chap nhan. */
+    /** args[0] = ten. */
     LOGIN_OK,
     /** args[0] = ma loi, args[1] = mo ta. */
     ERROR,
     /** args[0] = nguoi gui, args[1] = noi dung. */
     CHAT_MSG,
-    /** args[0] = thong bao he thong. */
+    /** args[0] = thong bao. */
     SYSTEM,
-    /** args[0] = danh sach ten, ngan cach bang dau phay. */
+    /** args[0] = danh sach ten. */
     WHO_LIST,
 
-    /** payload = ArrayList&lt;RoomInfo&gt;. Danh sach phong hien co. */
+    /** payload = ArrayList&lt;RoomInfo&gt;. */
     ROOM_LIST_DATA,
-    /** payload = RoomInfo cua phong vua vao, args[0] = "1" neu la chu phong. */
+    /** payload = RoomInfo, args[0] = "1" neu la chu phong. */
     ROOM_JOINED,
     /** payload = RoomInfo, args[0] = ten nguoi 1, args[1] = ten nguoi 2. */
     ROOM_STATE,
-    /** Khong tham so. Xac nhan da roi phong. */
-    ROOM_LEFT
+    /** Khong tham so. */
+    ROOM_LEFT,
+
+    /** Khong tham so. Du 2 nguoi, bat dau dat tau. */
+    PLACE_PHASE,
+    /** Khong tham so. So do dat tau hop le, dang cho doi thu. */
+    READY_OK,
+    /** args[0] = ten nguoi di truoc. */
+    GAME_START,
+    /** args[0] = ten nguoi dang danh luot. */
+    TURN,
+    /** args[0]=x, args[1]=y, args[2]=ket qua, args[3]=ma tau neu CHIM. Ket qua phat ban CUA MINH. */
+    FIRE_RESULT,
+    /** Nhu tren nhung la phat ban cua DOI THU vao minh. */
+    INCOMING,
+    /** args[0] = WIN hoac LOSE, args[1] = ly do. */
+    GAME_OVER
 }

@@ -15,3 +15,7 @@ nbproject/private/
 # He dieu hanh
 .DS_Store
 Thumbs.db
+
+#bot
+botA.log
+botB.log

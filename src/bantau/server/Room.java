@@ -1,5 +1,6 @@
 package bantau.server;
 
+import bantau.common.Board;
 import bantau.common.Packet;
 import bantau.common.PacketType;
 import bantau.common.Protocol;
@@ -7,17 +8,19 @@ import bantau.common.RoomInfo;
 import bantau.common.RoomState;
 
 /**
- * MOT PHONG CHOI - toi da 2 nguoi.
+ * MOT PHONG CHOI - toi da 2 nguoi, chua mot van dau.
  *
- * <p>Day la lop quan trong nhat ve mat DONG BO DU LIEU trong ca do an.
+ * <p>May trang thai cua phong:
+ * <pre>
+ *   WAITING  --du 2 nguoi-->  PLACING  --ca hai READY-->  PLAYING
+ *      ^                          |                          |
+ *      +--------- mot nguoi roi phong -------------------- --+
+ *                                 ^                          |
+ *                                 +---- het van, choi lai ----+
+ * </pre>
  *
- * <p>Tinh huong nguy hiem: phong dang co 1 nguoi, hai nguoi khac cung bam
- * "Vao phong" trong cung mot phan nghin giay. Neu khong dong bo, ca hai cung
- * doc thay "con 1 cho trong" roi ca hai cung vao - phong co 3 nguoi.
- *
- * <p>Cach xu ly: moi phuong thuc thay doi trang thai deu {@code synchronized}.
- * Khoa nam tren chinh doi tuong Room, nen hai thread khong bao gio cung chay
- * ben trong join() cua cung mot phong.
+ * <p>Moi phuong thuc thay doi trang thai deu synchronized vi cac thread
+ * ClientHandler khac nhau cung truy cap vao doi tuong nay.
  */
 public class Room {
 
@@ -25,12 +28,11 @@ public class Room {
     private final String name;
     private final RoomManager manager;
 
-    /** Nguoi thu nhat - la chu phong. */
     private ClientHandler p1;
-    /** Nguoi thu hai. */
     private ClientHandler p2;
 
     private RoomState state = RoomState.WAITING;
+    private GameSession game;
 
     public Room(int id, String name, RoomManager manager) {
         this.id = id;
@@ -66,7 +68,6 @@ public class Room {
         return c == p1 || c == p2;
     }
 
-    /** Ban sao thong tin phong de gui cho client. */
     public synchronized RoomInfo info() {
         return new RoomInfo(id, name, playerCount(), state);
     }
@@ -75,7 +76,6 @@ public class Room {
         return c == null ? "-" : c.getUsername();
     }
 
-    /** Gui mot ban tin toi moi nguoi trong phong. */
     public synchronized void broadcast(Packet packet) {
         if (p1 != null) {
             p1.send(packet);
@@ -85,7 +85,6 @@ public class Room {
         }
     }
 
-    /** Bao cho ca phong biet trang thai hien tai. */
     private void guiTrangThai() {
         broadcast(Packet.withPayload(PacketType.ROOM_STATE, info(),
                 tenCua(p1), tenCua(p2)));
@@ -95,11 +94,7 @@ public class Room {
     /* Vao / roi phong                                                    */
     /* ------------------------------------------------------------------ */
 
-    /**
-     * Cho mot nguoi vao phong.
-     *
-     * @return null neu thanh cong, nguoc lai la ma loi
-     */
+    /** @return null neu thanh cong, nguoc lai la ma loi */
     public synchronized String join(ClientHandler c) {
         if (contains(c)) {
             return Protocol.E_ALREADY_IN_ROOM;
@@ -114,33 +109,31 @@ public class Room {
             p2 = c;
         }
         c.setRoom(this);
-
-        // Nguoi vao dau tien la chu phong.
         c.send(Packet.withPayload(PacketType.ROOM_JOINED, info(), c == p1 ? "1" : "0"));
 
-        // Du 2 nguoi thi chuyen sang giai doan dat tau (Giai doan 6 se dung).
-        state = isFull() ? RoomState.PLACING : RoomState.WAITING;
-        guiTrangThai();
-
+        if (isFull()) {
+            batDauDatTau();
+        } else {
+            state = RoomState.WAITING;
+            guiTrangThai();
+        }
         manager.broadcastRoomList();
         return null;
     }
 
-    /**
-     * Mot nguoi roi phong - chu dong bam roi, hoac mat ket noi.
-     *
-     * <p>Ba viec phai lam dung thu tu:
-     * <ol>
-     *   <li>Go nguoi do ra khoi phong.</li>
-     *   <li>Neu con nguoi o lai: don len lam chu phong, quay ve trang thai cho.</li>
-     *   <li>Neu phong rong: xoa phong khoi danh sach, tranh de lai rac.</li>
-     * </ol>
-     */
+    /** Chuyen sang giai doan dat tau. Goi khi du 2 nguoi hoac khi choi lai. */
+    private void batDauDatTau() {
+        state = RoomState.PLACING;
+        game = new GameSession(p1, p2);
+        guiTrangThai();
+        broadcast(Packet.of(PacketType.PLACE_PHASE));
+    }
+
+    /** Mot nguoi roi phong - chu dong bam roi, hoac mat ket noi. */
     public synchronized void leave(ClientHandler c) {
         if (!contains(c)) {
             return;
         }
-
         ClientHandler conLai = (c == p1) ? p2 : p1;
 
         if (c == p1) {
@@ -151,8 +144,13 @@ public class Room {
         c.setRoom(null);
         c.send(Packet.of(PacketType.ROOM_LEFT));
 
+        // Dang danh do ma bo di thi nguoi con lai duoc xu thang.
+        if (game != null && conLai != null) {
+            game.abortBecauseLeft(c);
+        }
+        game = null;
+
         if (conLai != null) {
-            // Don nguoi con lai len lam chu phong.
             p1 = conLai;
             p2 = null;
             state = RoomState.WAITING;
@@ -162,7 +160,70 @@ public class Room {
         } else {
             manager.removeRoom(this);
         }
-
         manager.broadcastRoomList();
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Trong van dau                                                      */
+    /* ------------------------------------------------------------------ */
+
+    /**
+     * Nhan so do dat tau cua mot nguoi choi.
+     *
+     * <p>Day la cho server KHONG DUOC TIN client. Ban do nhan ve phai qua
+     * {@link Board#kiemTraHopLe()} truoc khi chap nhan.
+     *
+     * @return null neu hop le, nguoc lai la ma loi
+     */
+    public synchronized String handleReady(ClientHandler c, Board board) {
+        if (!contains(c)) {
+            return Protocol.E_NOT_IN_ROOM;
+        }
+        if (state != RoomState.PLACING || game == null) {
+            return Protocol.E_BAD_STATE;
+        }
+        if (board == null) {
+            return Protocol.E_BAD_PLACEMENT;
+        }
+
+        String loi = board.kiemTraHopLe();
+        if (loi != null) {
+            System.out.println("Tu choi so do cua " + c.getUsername() + ": " + loi);
+            return Protocol.E_BAD_PLACEMENT;
+        }
+
+        boolean caHaiSanSang = game.setBoard(c, board);
+        c.send(Packet.of(PacketType.READY_OK));
+        c.send(Packet.of(PacketType.SYSTEM, "So do hop le. Dang cho doi thu..."));
+
+        if (caHaiSanSang) {
+            state = RoomState.PLAYING;
+            guiTrangThai();
+            game.start();
+            manager.broadcastRoomList();
+        }
+        return null;
+    }
+
+    /** @return null neu hop le, nguoc lai la ma loi */
+    public synchronized String handleFire(ClientHandler c, int x, int y) {
+        if (!contains(c)) {
+            return Protocol.E_NOT_IN_ROOM;
+        }
+        if (state != RoomState.PLAYING || game == null) {
+            return Protocol.E_BAD_STATE;
+        }
+
+        String loi = game.fire(c, x, y);
+        if (loi != null) {
+            return loi;
+        }
+
+        // Van dau vua ket thuc: mo luon mot van moi cho hai nguoi choi lai.
+        if (game.isFinished()) {
+            batDauDatTau();
+            manager.broadcastRoomList();
+        }
+        return null;
     }
 }
