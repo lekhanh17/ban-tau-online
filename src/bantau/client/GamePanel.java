@@ -84,6 +84,9 @@ public class GamePanel extends JPanel {
     private int hoverX = -1;
     private int hoverY = -1;
 
+    /** Co phai luot cua minh khong - dung de mo lai ban co khi phat ban bi tu choi. */
+    private boolean luotCuaMinh;
+
     private String tenPhong = "";
     private String doiThu = "-";
 
@@ -338,8 +341,28 @@ public class GamePanel extends JPanel {
     /* ------------------------------------------------------------------ */
 
     private void banVaoO(int x, int y) {
+        // Chan ngay tai client: o da ban roi thi khong gui goi tin lam gi,
+        // server chac chan tu choi bang loi E_ALREADY_SHOT.
+        if (boardDoiThu.daBan(x, y)) {
+            log("O " + tenO(x, y) + " da ban roi, hay chon o khac.");
+            return;
+        }
         app.send(Packet.of(PacketType.FIRE, String.valueOf(x), String.valueOf(y)));
+        // Tat chuot trong luc cho ket qua de tranh bam lien tuc nhieu phat.
         boardDoiThu.setChoPhepClick(false);
+    }
+
+    /**
+     * Server tu choi phat ban (sai luot hoac o da ban).
+     *
+     * <p>Phai mo lai ban co, vi luc gui di ta da tat chuot de cho ket qua
+     * ma server thi khong gui goi TURN moi trong truong hop nay - khong mo
+     * lai thi nguoi choi ngoi nhin, khong bam duoc nua.
+     */
+    public void banBiTuChoi() {
+        if (luotCuaMinh) {
+            boardDoiThu.setChoPhepClick(true);
+        }
     }
 
     private String tenO(int x, int y) {
@@ -383,6 +406,8 @@ public class GamePanel extends JPanel {
         modelCuaMinh.clear();
         boardCuaMinh.xoaHet();
         boardDoiThu.xoaHet();
+        boardDoiThu.setChoPhepClick(false);
+        luotCuaMinh = false;
         hoverX = -1;
         hoverY = -1;
         tauDangChon = ShipType.CARRIER;
@@ -414,7 +439,7 @@ public class GamePanel extends JPanel {
 
     /** TURN: server bao den luot ai. */
     public void capNhatLuot(String tenNguoiDangDanh) {
-        boolean luotCuaMinh = app.getUsername().equals(tenNguoiDangDanh);
+        luotCuaMinh = app.getUsername().equals(tenNguoiDangDanh);
         boardDoiThu.setChoPhepClick(luotCuaMinh);
         setStatus(luotCuaMinh
                 ? "Den luot ban - bam vao ban co doi thu de ban."
@@ -446,6 +471,7 @@ public class GamePanel extends JPanel {
 
     /** GAME_OVER: van dau ket thuc. */
     public void ketThucVan(String ketQua, String lyDo) {
+        luotCuaMinh = false;
         boardDoiThu.setChoPhepClick(false);
         boolean thang = "WIN".equals(ketQua);
         String moTaLyDo = "OPPONENT_LEFT".equals(lyDo)

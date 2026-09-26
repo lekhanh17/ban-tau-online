@@ -48,6 +48,10 @@ public class ClientMain extends JFrame implements ServerConnection.Listener {
     private final ServerConnection connection = new ServerConnection();
     private String username = "";
 
+    /** Giu tam ten va mat khau giua luc bam nut va luc server tra loi. */
+    private String tenTam = "";
+    private String matKhauTam = "";
+
     public ClientMain() {
         setTitle("Ban tau online - Battleship");
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
@@ -86,20 +90,45 @@ public class ClientMain extends JFrame implements ServerConnection.Listener {
     /* Cac hanh dong do giao dien goi                                     */
     /* ------------------------------------------------------------------ */
 
-    public void doConnect(String host, int port, String ten) {
+    /**
+     * Ket noi toi server roi gui LOGIN hoac REGISTER.
+     *
+     * @param dangKy true thi tao tai khoan moi, false thi dang nhap
+     */
+    public void doConnect(String host, int port, String ten, String matKhau, boolean dangKy) {
         if (ten.isEmpty()) {
-            loginPanel.setStatus("Hay nhap ten nguoi choi");
+            loginPanel.setStatusLoi("Hay nhap ten nguoi choi");
             return;
         }
+        if (matKhau.isEmpty()) {
+            loginPanel.setStatusLoi("Hay nhap mat khau");
+            return;
+        }
+
+        tenTam = ten;
+        matKhauTam = matKhau;
+
         loginPanel.setBusy(true);
+        loginPanel.setStatusLoi(" ");
         loginPanel.setStatus("Dang ket noi toi " + host + ":" + port + "...");
         try {
+            // Dong ket noi cu neu lan truoc bi tu choi, roi mo ket noi moi.
+            connection.close();
             connection.connect(host, port, this);
-            connection.send(Packet.of(PacketType.LOGIN, ten));
+            connection.send(Packet.of(
+                    dangKy ? PacketType.REGISTER : PacketType.LOGIN, ten, matKhau));
         } catch (IOException e) {
             loginPanel.setBusy(false);
-            loginPanel.setStatus("Khong ket noi duoc: " + e.getMessage());
+            loginPanel.setStatusLoi("Khong ket noi duoc: " + e.getMessage());
         }
+    }
+
+    public void doXemBangXepHang() {
+        connection.send(Packet.of(PacketType.RANK_LIST));
+    }
+
+    public void doXemLichSu() {
+        connection.send(Packet.of(PacketType.HISTORY_LIST));
     }
 
     public void doRefreshRooms() {
@@ -136,11 +165,24 @@ public class ClientMain extends JFrame implements ServerConnection.Listener {
         switch (p.type()) {
             case LOGIN_OK -> {
                 username = p.arg(0);
+                matKhauTam = "";           // khong giu mat khau trong bo nho nua
                 loginPanel.setBusy(false);
                 loginPanel.setStatus(" ");
                 lobbyPanel.setUsername(username);
                 cards.show(root, CARD_LOBBY);
             }
+
+            // Tao tai khoan xong thi dang nhap luon cho nguoi choi do phai go lai.
+            case REGISTER_OK -> {
+                loginPanel.setStatusOk("Tao tai khoan thanh cong, dang dang nhap...");
+                connection.send(Packet.of(PacketType.LOGIN, tenTam, matKhauTam));
+            }
+
+            case RANK_DATA ->
+                    ThongKeDialog.hienBangXepHang(this, p.payload(ArrayList.class));
+
+            case HISTORY_DATA ->
+                    ThongKeDialog.hienLichSu(this, username, p.payload(ArrayList.class));
 
             case ROOM_LIST_DATA ->
                     lobbyPanel.updateRooms(p.payload(ArrayList.class));
@@ -188,7 +230,7 @@ public class ClientMain extends JFrame implements ServerConnection.Listener {
         // Chua dang nhap xong thi bao loi ngay tai man hinh dang nhap.
         if (username.isEmpty()) {
             loginPanel.setBusy(false);
-            loginPanel.setStatus(moTa);
+            loginPanel.setStatusLoi(moTa);
             connection.close();
             return;
         }
@@ -200,6 +242,10 @@ public class ClientMain extends JFrame implements ServerConnection.Listener {
             doRefreshRooms();
         } else if (Protocol.E_BAD_PLACEMENT.equals(code)) {
             gamePanel.datTauBiTuChoi(moTa);
+        } else if (Protocol.E_ALREADY_SHOT.equals(code)
+                || Protocol.E_NOT_YOUR_TURN.equals(code)) {
+            // Phat ban bi tu choi: mo lai ban co de nguoi choi ban o khac.
+            gamePanel.banBiTuChoi();
         }
     }
 

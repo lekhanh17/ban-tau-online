@@ -48,10 +48,14 @@ public class LobbyPanel extends JPanel {
         table.getColumnModel().getColumn(2).setMaxWidth(100);
         add(new JScrollPane(table), BorderLayout.CENTER);
 
+        JButton rankButton = new JButton("Bang xep hang");
+        JButton historyButton = new JButton("Lich su dau");
         JButton refreshButton = new JButton("Lam moi");
         JButton createButton = new JButton("Tao phong moi");
         JButton joinButton = new JButton("Vao phong");
 
+        rankButton.addActionListener(e -> app.doXemBangXepHang());
+        historyButton.addActionListener(e -> app.doXemLichSu());
         refreshButton.addActionListener(e -> app.doRefreshRooms());
         createButton.addActionListener(e -> {
             String ten = JOptionPane.showInputDialog(this,
@@ -62,10 +66,19 @@ public class LobbyPanel extends JPanel {
         });
         joinButton.addActionListener(e -> vaoPhongDangChon());
 
-        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        buttons.add(refreshButton);
-        buttons.add(createButton);
-        buttons.add(joinButton);
+        // Ben trai la hai nut xem thong ke tu CSDL, ben phai la nut thao tac phong.
+        JPanel thongKe = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+        thongKe.add(rankButton);
+        thongKe.add(historyButton);
+
+        JPanel thaoTac = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
+        thaoTac.add(refreshButton);
+        thaoTac.add(createButton);
+        thaoTac.add(joinButton);
+
+        JPanel buttons = new JPanel(new BorderLayout());
+        buttons.add(thongKe, BorderLayout.WEST);
+        buttons.add(thaoTac, BorderLayout.EAST);
         add(buttons, BorderLayout.SOUTH);
 
         // Nhay dup chuot de vao phong cho nhanh.

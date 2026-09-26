@@ -2,6 +2,12 @@ package bantau.server;
 
 import bantau.common.Packet;
 import bantau.common.Protocol;
+import bantau.server.db.DaoRam;
+import bantau.server.db.Database;
+import bantau.server.db.MatchDao;
+import bantau.server.db.MatchDaoMySql;
+import bantau.server.db.PlayerDao;
+import bantau.server.db.PlayerDaoMySql;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -23,12 +29,18 @@ public class ServerMain {
     /** Quan ly phong. Dung chung cho toan server. */
     private static final RoomManager ROOMS = new RoomManager();
 
+    /** Noi luu tai khoan va lich su. Chon o {@link #chonNoiLuuTru()}. */
+    private static PlayerDao players;
+    private static MatchDao matches;
+
     public static void main(String[] args) {
         int port = args.length > 0 ? Integer.parseInt(args[0]) : Protocol.DEFAULT_PORT;
         ExecutorService pool = Executors.newCachedThreadPool();
 
+        chonNoiLuuTru();
+
         try (ServerSocket server = new ServerSocket(port)) {
-            System.out.println("=== SERVER GIAI DOAN 4 - LOBBY NHIEU PHONG ===");
+            System.out.println("=== SERVER BAN TAU ONLINE ===");
             System.out.println("Dang lang nghe tai cong " + port + ".");
 
             while (true) {
@@ -47,6 +59,36 @@ public class ServerMain {
         } finally {
             pool.shutdownNow();
         }
+    }
+
+    /**
+     * Thu ket noi CSDL. Ket noi duoc thi luu that vao MySQL, khong duoc thi
+     * luu tam trong bo nho de server van chay binh thuong.
+     *
+     * <p>Day la loi ich cua viec tach {@link PlayerDao} thanh interface:
+     * chon cach luu tru chi nam gon trong ham nay, phan con lai cua server
+     * khong he biet dang dung cach nao.
+     */
+    private static void chonNoiLuuTru() {
+        if (Database.khoiTao()) {
+            players = new PlayerDaoMySql();
+            matches = new MatchDaoMySql();
+            System.out.println("[CSDL] Tai khoan va lich su duoc luu vao MySQL.");
+        } else {
+            DaoRam ram = new DaoRam();
+            players = ram;
+            matches = ram;
+            System.out.println("[CSDL] CHE DO KHONG CSDL: tai khoan chi luu tam trong"
+                    + " bo nho, tat server la mat.");
+        }
+    }
+
+    public static PlayerDao players() {
+        return players;
+    }
+
+    public static MatchDao matches() {
+        return matches;
     }
 
     public static RoomManager rooms() {

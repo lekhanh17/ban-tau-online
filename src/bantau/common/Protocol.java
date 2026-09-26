@@ -30,6 +30,11 @@ public final class Protocol {
 
     public static final String E_NAME_TAKEN = "E_NAME_TAKEN";
     public static final String E_NAME_INVALID = "E_NAME_INVALID";
+    public static final String E_NAME_EXISTS = "E_NAME_EXISTS";
+    public static final String E_WRONG_PASSWORD = "E_WRONG_PASSWORD";
+    public static final String E_PASS_INVALID = "E_PASS_INVALID";
+    public static final String E_NO_ACCOUNT = "E_NO_ACCOUNT";
+    public static final String E_DB_ERROR = "E_DB_ERROR";
     public static final String E_NOT_LOGGED_IN = "E_NOT_LOGGED_IN";
     public static final String E_BAD_STATE = "E_BAD_STATE";
     public static final String E_UNKNOWN_CMD = "E_UNKNOWN_CMD";
@@ -55,4 +60,14 @@ public final class Protocol {
     public static final int NAME_MIN = 3;
     public static final int NAME_MAX = 16;
     public static final String NAME_PATTERN = "^[A-Za-z0-9_]{" + NAME_MIN + "," + NAME_MAX + "}$";
+
+    /* ===== Rang buoc mat khau ===== */
+
+    public static final int PASS_MIN = 4;
+    public static final int PASS_MAX = 32;
+
+    /** So nguoi hien trong bang xep hang. */
+    public static final int RANK_TOP = 10;
+    /** So tran gan nhat hien trong lich su dau. */
+    public static final int HISTORY_LIMIT = 20;
 }

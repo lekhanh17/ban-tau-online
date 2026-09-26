@@ -7,8 +7,14 @@ public enum PacketType {
 
     /* ===== Client gui len Server ===== */
 
-    /** args[0] = ten nguoi choi. */
+    /** args[0] = ten nguoi choi, args[1] = mat khau. */
     LOGIN,
+    /** args[0] = ten nguoi choi, args[1] = mat khau. Tao tai khoan moi. */
+    REGISTER,
+    /** Khong tham so. Xin bang xep hang. */
+    RANK_LIST,
+    /** Khong tham so. Xin lich su dau cua chinh minh. */
+    HISTORY_LIST,
     /** args[0] = noi dung tin nhan. */
     CHAT,
     /** Khong tham so. */
@@ -34,6 +40,12 @@ public enum PacketType {
 
     /** args[0] = ten. */
     LOGIN_OK,
+    /** args[0] = ten. Tao tai khoan thanh cong, moi dang nhap. */
+    REGISTER_OK,
+    /** payload = ArrayList&lt;PlayerStats&gt;. Bang xep hang. */
+    RANK_DATA,
+    /** payload = ArrayList&lt;MatchRecord&gt;. Lich su dau cua nguoi xin. */
+    HISTORY_DATA,
     /** args[0] = ma loi, args[1] = mo ta. */
     ERROR,
     /** args[0] = nguoi gui, args[1] = noi dung. */

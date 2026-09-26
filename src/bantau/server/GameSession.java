@@ -7,6 +7,8 @@ import bantau.common.PacketType;
 import bantau.common.Protocol;
 import bantau.common.ShipType;
 
+import java.time.LocalDateTime;
+
 /**
  * MOT VAN DAU GIUA DUNG HAI NGUOI CHOI
  *
@@ -29,6 +31,10 @@ public class GameSession {
     private ClientHandler turn;
     private boolean started;
     private boolean finished;
+
+    /** Dem de ghi vao CSDL: tong so phat ban hop le cua ca hai ben. */
+    private int soPhatBan;
+    private LocalDateTime batDau;
 
     public GameSession(ClientHandler playerA, ClientHandler playerB) {
         this.playerA = playerA;
@@ -75,6 +81,7 @@ public class GameSession {
             return;
         }
         started = true;
+        batDau = LocalDateTime.now();
         turn = Math.random() < 0.5 ? playerA : playerB;
 
         String nguoiDiTruoc = turn.getUsername();
@@ -119,6 +126,7 @@ public class GameSession {
         if (ketQua == FireResult.ALREADY) {
             return Protocol.E_ALREADY_SHOT;
         }
+        soPhatBan++;
 
         // Neu chim thi bao them la tau gi
         String maTau = "";
@@ -143,6 +151,7 @@ public class GameSession {
                     Protocol.RESULT_LOSE, Protocol.REASON_ALL_SUNK));
             System.out.println("Van dau ket thuc: " + shooter.getUsername()
                     + " thang " + target.getUsername());
+            ghiKetQua(shooter.getUsername(), Protocol.REASON_ALL_SUNK);
             return null;
         }
 
@@ -166,6 +175,28 @@ public class GameSession {
         if (started && conLai != null) {
             conLai.send(Packet.of(PacketType.GAME_OVER,
                     Protocol.RESULT_WIN, Protocol.REASON_OPPONENT_LEFT));
+            ghiKetQua(conLai.getUsername(), Protocol.REASON_OPPONENT_LEFT);
         }
+    }
+
+    /**
+     * Ghi ket qua van dau xuong noi luu tru: mot dong trong bang matches,
+     * va cong thang/thua cho hai nguoi choi.
+     *
+     * <p>Van dau chua bat dau (hai ben chua dat xong tau) thi khong ghi gi,
+     * vi do khong phai mot tran that.
+     */
+    private void ghiKetQua(String nguoiThang, String lyDo) {
+        if (!started || batDau == null) {
+            return;
+        }
+        String tenA = playerA.getUsername();
+        String tenB = playerB.getUsername();
+        String nguoiThua = nguoiThang.equals(tenA) ? tenB : tenA;
+
+        ServerMain.matches().luuTran(tenA, tenB, nguoiThang, lyDo,
+                soPhatBan, batDau, LocalDateTime.now());
+        ServerMain.players().congThang(nguoiThang);
+        ServerMain.players().congThua(nguoiThua);
     }
 }

@@ -185,6 +185,16 @@ public class BoardView extends JPanel {
         repaint();
     }
 
+    /**
+     * O nay da ban roi chua.
+     *
+     * <p>Dung de chan tu phia client: bam vao o da ban thi khong gui goi tin
+     * len server nua, do la phat ban chac chan bi tu choi.
+     */
+    public boolean daBan(int x, int y) {
+        return Board.inBounds(x, y) && danhDau[x][y] != Mark.NONE;
+    }
+
     /** Danh dau ket qua mot phat ban (TRUOT / TRUNG / CHIM) len o (x, y). */
     public void danhDauO(int x, int y, Mark m) {
         if (Board.inBounds(x, y)) {

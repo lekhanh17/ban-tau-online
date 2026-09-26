@@ -11,6 +11,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.net.SocketException;
+import java.util.ArrayList;
 import java.util.regex.Pattern;
 
 /**
@@ -110,12 +111,12 @@ public class ClientHandler implements Runnable {
 
     private void handle(Packet packet) {
 
-        // ----- Chua dang nhap: chi cho phep LOGIN -----
+        // ----- Chua dang nhap: chi cho phep LOGIN va REGISTER -----
         if (username == null) {
-            if (packet.type() == PacketType.LOGIN) {
-                xuLyDangNhap(packet.arg(0));
-            } else {
-                sendError(Protocol.E_NOT_LOGGED_IN, "Ban phai dang nhap truoc");
+            switch (packet.type()) {
+                case LOGIN -> xuLyDangNhap(packet.arg(0), packet.arg(1));
+                case REGISTER -> xuLyDangKy(packet.arg(0), packet.arg(1));
+                default -> sendError(Protocol.E_NOT_LOGGED_IN, "Ban phai dang nhap truoc");
             }
             return;
         }
@@ -130,7 +131,17 @@ public class ClientHandler implements Runnable {
             case WHO ->
                     send(Packet.of(PacketType.WHO_LIST, ServerMain.onlineNames()));
 
+            case REGISTER ->
+                    sendError(Protocol.E_BAD_STATE, "Ban da dang nhap roi");
+
             case ROOM_LIST -> ServerMain.rooms().sendRoomList(this);
+
+            case RANK_LIST -> send(Packet.withPayload(PacketType.RANK_DATA,
+                    new ArrayList<>(ServerMain.players().bangXepHang(Protocol.RANK_TOP))));
+
+            case HISTORY_LIST -> send(Packet.withPayload(PacketType.HISTORY_DATA,
+                    new ArrayList<>(ServerMain.matches()
+                            .lichSuCua(username, Protocol.HISTORY_LIMIT))));
 
             case ROOM_CREATE -> xuLyTaoPhong(packet.arg(0));
 
@@ -152,17 +163,76 @@ public class ClientHandler implements Runnable {
     /* Cac lenh cu the                                                    */
     /* ------------------------------------------------------------------ */
 
-    private void xuLyDangNhap(String ten) {
+    /**
+     * Kiem tra ten va mat khau co dung khuon dang khong.
+     *
+     * @return null neu hop le, nguoc lai la ma loi
+     */
+    private String kiemTraKhuonDang(String ten, String matKhau) {
+        if (!NAME_RULE.matcher(ten).matches()) {
+            return Protocol.E_NAME_INVALID;
+        }
+        if (matKhau == null || matKhau.length() < Protocol.PASS_MIN
+                || matKhau.length() > Protocol.PASS_MAX) {
+            return Protocol.E_PASS_INVALID;
+        }
+        return null;
+    }
+
+    /** Doi ma loi thanh cau giai thich cho nguoi choi doc. */
+    private String moTaLoi(String code) {
+        return switch (code) {
+            case Protocol.E_NAME_INVALID -> "Ten phai dai " + Protocol.NAME_MIN + "-"
+                    + Protocol.NAME_MAX + " ky tu, chi gom chu cai, so va dau gach duoi";
+            case Protocol.E_PASS_INVALID -> "Mat khau phai dai " + Protocol.PASS_MIN + "-"
+                    + Protocol.PASS_MAX + " ky tu";
+            case Protocol.E_NAME_EXISTS -> "Ten nay da co nguoi dang ky";
+            case Protocol.E_NO_ACCOUNT -> "Chua co tai khoan nay, hay bam Dang ky truoc";
+            case Protocol.E_WRONG_PASSWORD -> "Sai mat khau";
+            case Protocol.E_DB_ERROR -> "Loi CSDL phia server, thu lai sau";
+            default -> "Khong dang nhap duoc";
+        };
+    }
+
+    private void xuLyDangKy(String ten, String matKhau) {
         String n = ten == null ? "" : ten.trim();
 
-        if (!NAME_RULE.matcher(n).matches()) {
-            sendError(Protocol.E_NAME_INVALID,
-                    "Ten phai dai " + Protocol.NAME_MIN + "-" + Protocol.NAME_MAX
-                            + " ky tu, chi gom chu cai, so va dau gach duoi");
+        String loi = kiemTraKhuonDang(n, matKhau);
+        if (loi != null) {
+            sendError(loi, moTaLoi(loi));
             return;
         }
+
+        String err = ServerMain.players().dangKy(n, matKhau);
+        if (err != null) {
+            sendError(err, moTaLoi(err));
+            return;
+        }
+
+        send(Packet.of(PacketType.REGISTER_OK, n));
+        System.out.println("Tao tai khoan moi: " + n);
+    }
+
+    private void xuLyDangNhap(String ten, String matKhau) {
+        String n = ten == null ? "" : ten.trim();
+
+        String loi = kiemTraKhuonDang(n, matKhau);
+        if (loi != null) {
+            sendError(loi, moTaLoi(loi));
+            return;
+        }
+
+        // Kiem tra tai khoan trong CSDL truoc...
+        String err = ServerMain.players().kiemTraDangNhap(n, matKhau);
+        if (err != null) {
+            sendError(err, moTaLoi(err));
+            return;
+        }
+
+        // ...roi moi xem ten do co dang duoc dung o may khac khong.
         if (!ServerMain.registerUser(n, this)) {
-            sendError(Protocol.E_NAME_TAKEN, "Ten '" + n + "' dang co nguoi khac dung");
+            sendError(Protocol.E_NAME_TAKEN,
+                    "Tai khoan '" + n + "' dang dang nhap o mot may khac");
             return;
         }
 
