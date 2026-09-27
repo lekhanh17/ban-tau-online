@@ -21,6 +21,8 @@ public enum PacketType {
     WHO,
     /** Khong tham so. */
     QUIT,
+    /** Khong tham so. Tra loi PING cua server de bao "toi con song". */
+    PONG,
 
     /** Khong tham so. */
     ROOM_LIST,
@@ -52,6 +54,8 @@ public enum PacketType {
     CHAT_MSG,
     /** args[0] = thong bao. */
     SYSTEM,
+    /** Khong tham so. Server hoi "con song khong", client phai tra PONG. */
+    PING,
     /** args[0] = danh sach ten. */
     WHO_LIST,
 

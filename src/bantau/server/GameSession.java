@@ -36,6 +36,9 @@ public class GameSession {
     private int soPhatBan;
     private LocalDateTime batDau;
 
+    /** Moc thoi gian bat dau luot hien tai, de tinh het gio suy nghi. */
+    private long luotBatDauMs;
+
     public GameSession(ClientHandler playerA, ClientHandler playerB) {
         this.playerA = playerA;
         this.playerB = playerB;
@@ -91,9 +94,44 @@ public class GameSession {
     }
 
     private void baoLuot() {
+        // Moc bat dau tinh gio cho luot moi.
+        luotBatDauMs = System.currentTimeMillis();
+
         String ten = turn.getUsername();
-        playerA.send(Packet.of(PacketType.TURN, ten));
-        playerB.send(Packet.of(PacketType.TURN, ten));
+        String giay = String.valueOf(Protocol.TURN_SECONDS);
+        playerA.send(Packet.of(PacketType.TURN, ten, giay));
+        playerB.send(Packet.of(PacketType.TURN, ten, giay));
+    }
+
+    /**
+     * Kiem tra nguoi dang danh co qua gio suy nghi chua.
+     *
+     * <p>Thread canh gac ben {@link ServerMain} goi ham nay moi giay. Qua
+     * {@link Protocol#TURN_SECONDS} giay ma chua ban thi bi mat luot, du
+     * dang giu luot nho ban trung di nua.
+     *
+     * @return true neu vua chuyen luot vi het gio
+     */
+    public boolean kiemTraHetGio() {
+        if (!started || finished || turn == null) {
+            return false;
+        }
+        long daTroi = (System.currentTimeMillis() - luotBatDauMs) / 1000;
+        if (daTroi < Protocol.TURN_SECONDS) {
+            return false;
+        }
+
+        ClientHandler heHan = turn;
+        turn = doiThuCua(heHan);
+
+        String tb = heHan.getUsername() + " het " + Protocol.TURN_SECONDS
+                + " giay suy nghi, mat luot.";
+        playerA.send(Packet.of(PacketType.SYSTEM, tb));
+        playerB.send(Packet.of(PacketType.SYSTEM, tb));
+        System.out.println(tb);
+
+        baoLuot();
+        return true;
     }
 
     /**

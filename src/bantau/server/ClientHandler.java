@@ -33,6 +33,14 @@ public class ClientHandler implements Runnable {
     private volatile boolean closed;
 
     /**
+     * Thoi diem cuoi cung nghe thay client (bat ky goi tin nao, ke ca PONG).
+     *
+     * <p>Dung {@link System#currentTimeMillis()} chu khong phai gio he thong
+     * vi chi can do KHOANG CACH thoi gian.
+     */
+    private volatile long lanCuoiNgheThay = System.currentTimeMillis();
+
+    /**
      * THU TU TAO LUONG BAT BUOC: ObjectOutputStream truoc, flush(), roi moi
      * ObjectInputStream. Nguoc lai hai ben cung cho header cua nhau - treo
      * vinh vien ma khong bao loi.
@@ -54,6 +62,24 @@ public class ClientHandler implements Runnable {
 
     public void setRoom(Room room) {
         this.room = room;
+    }
+
+    /**
+     * Bao lau roi khong nghe thay gi tu client nay, tinh bang giay.
+     * Thread canh gac o {@link ServerMain} dung de biet ai da chet.
+     */
+    public long soGiayImLang() {
+        return (System.currentTimeMillis() - lanCuoiNgheThay) / 1000;
+    }
+
+    /** Dong ket noi tu phia server - dung khi client khong con tra loi. */
+    public void ngatKetNoi(String lyDo) {
+        System.out.println("Ngat ket noi " + getUsername() + ": " + lyDo);
+        try {
+            socket.close();   // lam readObject() o thread kia bat loi va don dep
+        } catch (IOException ignored) {
+            // khong con gi de lam
+        }
     }
 
     public synchronized void send(Packet packet) {
@@ -88,6 +114,14 @@ public class ClientHandler implements Runnable {
             while (true) {
                 Object obj = in.readObject();
                 if (!(obj instanceof Packet packet)) {
+                    continue;
+                }
+
+                // Nghe thay bat ky goi tin nao cung nghia la client con song.
+                lanCuoiNgheThay = System.currentTimeMillis();
+
+                // PONG chi de bao con song, khong in ra cho do roi man hinh.
+                if (packet.type() == PacketType.PONG) {
                     continue;
                 }
                 System.out.println("  <-- " + getUsername() + " : " + packet);

@@ -162,6 +162,12 @@ public class ClientMain extends JFrame implements ServerConnection.Listener {
     @Override
     @SuppressWarnings("unchecked")
     public void onPacket(Packet p) {
+        // Server hoi "con song khong" - tra loi ngay, khong ghi gi ra man hinh.
+        if (p.type() == PacketType.PING) {
+            connection.send(Packet.of(PacketType.PONG));
+            return;
+        }
+
         switch (p.type()) {
             case LOGIN_OK -> {
                 username = p.arg(0);
@@ -206,7 +212,8 @@ public class ClientMain extends JFrame implements ServerConnection.Listener {
 
             case GAME_START -> gamePanel.batDauVanDau(p.arg(0));
 
-            case TURN -> gamePanel.capNhatLuot(p.arg(0));
+            case TURN -> gamePanel.capNhatLuot(
+                    p.arg(0), p.intArg(1, Protocol.TURN_SECONDS));
 
             case FIRE_RESULT -> gamePanel.ketQuaBanCuaMinh(
                     p.intArg(0, -1), p.intArg(1, -1), p.arg(2), p.arg(3));

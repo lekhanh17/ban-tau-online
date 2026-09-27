@@ -5,7 +5,9 @@ import bantau.common.FireResult;
 import bantau.common.Orientation;
 import bantau.common.Packet;
 import bantau.common.PacketType;
+import bantau.common.Protocol;
 import bantau.common.RoomInfo;
+import bantau.common.RoomState;
 import bantau.common.ShipType;
 
 import java.awt.BorderLayout;
@@ -31,6 +33,7 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.JToggleButton;
 import javax.swing.SwingConstants;
+import javax.swing.Timer;
 
 /**
  * MAN HINH TRONG PHONG
@@ -86,6 +89,11 @@ public class GamePanel extends JPanel {
 
     /** Co phai luot cua minh khong - dung de mo lai ban co khi phat ban bi tu choi. */
     private boolean luotCuaMinh;
+
+    /* ----- dong ho dem nguoc moi luot ----- */
+    private final JLabel dongHoLabel = new JLabel(" ", SwingConstants.CENTER);
+    private Timer dongHo;
+    private int giayConLai;
 
     private String tenPhong = "";
     private String doiThu = "-";
@@ -215,13 +223,72 @@ public class GamePanel extends JPanel {
     }
 
     private JPanel buildTheTranDau() {
+        JPanel p = new JPanel();
+        p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
+
+        dongHoLabel.setFont(new Font("SansSerif", Font.BOLD, 20));
+        dongHoLabel.setAlignmentX(CENTER_ALIGNMENT);
+
         JLabel nhan = new JLabel(
                 "Den luot ban thi bam vao ban co doi thu (ben phai) de ban.",
                 SwingConstants.CENTER);
         nhan.setFont(new Font("SansSerif", Font.PLAIN, 13));
-        JPanel p = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        nhan.setAlignmentX(CENTER_ALIGNMENT);
+
+        p.add(dongHoLabel);
         p.add(nhan);
         return p;
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Dong ho dem nguoc moi luot                                          */
+    /* ------------------------------------------------------------------ */
+
+    /**
+     * Bat dau dem nguoc cho luot moi.
+     *
+     * <p>Dung {@link javax.swing.Timer} chu KHONG dung {@code Thread.sleep}.
+     * Timer cua Swing goi ham xu ly ngay tren EDT nen sua giao dien an toan,
+     * con Thread.sleep tren EDT se lam treo ca cua so.
+     *
+     * <p>Dong ho nay chi de NHIN. Server moi la noi quyet dinh ai mat luot,
+     * nen dong ho client co lech vai phan tram giay cung khong sao.
+     */
+    private void batDauDemNguoc(int giay) {
+        dungDongHo();
+        giayConLai = giay;
+        veDongHo();
+
+        dongHo = new Timer(1000, e -> {
+            giayConLai--;
+            veDongHo();
+            if (giayConLai <= 0) {
+                // Het gio roi thi dung dem, cho server bao chuyen luot.
+                dungDongHo();
+            }
+        });
+        dongHo.start();
+    }
+
+    private void dungDongHo() {
+        if (dongHo != null) {
+            dongHo.stop();
+            dongHo = null;
+        }
+    }
+
+    private void veDongHo() {
+        if (giayConLai <= 0) {
+            dongHoLabel.setText("Het gio!");
+            dongHoLabel.setForeground(new java.awt.Color(0xC0392B));
+            return;
+        }
+        dongHoLabel.setText((luotCuaMinh ? "Luot cua ban: " : "Doi thu con: ")
+                + giayConLai + " giay");
+        // Duoi 10 giay thi chuyen do cho de thay.
+        dongHoLabel.setForeground(giayConLai <= 10
+                ? new java.awt.Color(0xC0392B)
+                : new java.awt.Color(0x1E8449));
     }
 
     private void noiSuKienBanCo() {
@@ -395,6 +462,26 @@ public class GamePanel extends JPanel {
         }
         capNhatTieuDe();
         statusLabel.setText("Trang thai: " + (info == null ? "?" : info.state().moTa()));
+
+        // Phong quay ve WAITING giua chung nghia la doi thu vua roi di.
+        // Phai dua giao dien ve trang thai cho, neu khong nguoi con lai se
+        // ngoi nhin man hinh dat tau hoac tran dau da chet.
+        if (info != null && info.state() == RoomState.WAITING) {
+            veTrangThaiCho();
+        }
+    }
+
+    /** Dua man hinh ve trang thai cho nguoi choi moi vao phong. */
+    private void veTrangThaiCho() {
+        luotCuaMinh = false;
+        dungDongHo();
+        dongHoLabel.setText(" ");
+        modelCuaMinh.clear();
+        boardCuaMinh.xoaHet();
+        boardDoiThu.xoaHet();
+        boardCuaMinh.setChoPhepClick(false);
+        boardDoiThu.setChoPhepClick(false);
+        dieuKhienCards.show(dieuKhienPanel, THE_CHO);
     }
 
     private void capNhatTieuDe() {
@@ -408,6 +495,8 @@ public class GamePanel extends JPanel {
         boardDoiThu.xoaHet();
         boardDoiThu.setChoPhepClick(false);
         luotCuaMinh = false;
+        dungDongHo();
+        dongHoLabel.setText(" ");
         hoverX = -1;
         hoverY = -1;
         tauDangChon = ShipType.CARRIER;
@@ -438,12 +527,13 @@ public class GamePanel extends JPanel {
     }
 
     /** TURN: server bao den luot ai. */
-    public void capNhatLuot(String tenNguoiDangDanh) {
+    public void capNhatLuot(String tenNguoiDangDanh, int giaySuyNghi) {
         luotCuaMinh = app.getUsername().equals(tenNguoiDangDanh);
         boardDoiThu.setChoPhepClick(luotCuaMinh);
         setStatus(luotCuaMinh
                 ? "Den luot ban - bam vao ban co doi thu de ban."
                 : "Doi thu (" + tenNguoiDangDanh + ") dang danh...");
+        batDauDemNguoc(giaySuyNghi);
     }
 
     /** FIRE_RESULT: ket qua phat ban CUA MINH vao ban co doi thu. */
@@ -472,18 +562,55 @@ public class GamePanel extends JPanel {
     /** GAME_OVER: van dau ket thuc. */
     public void ketThucVan(String ketQua, String lyDo) {
         luotCuaMinh = false;
+        dungDongHo();
+        dongHoLabel.setText(" ");
         boardDoiThu.setChoPhepClick(false);
-        boolean thang = "WIN".equals(ketQua);
-        String moTaLyDo = "OPPONENT_LEFT".equals(lyDo)
-                ? "doi thu da roi phong" : "da ban chim het tau doi thu";
-        String moTaThua = "OPPONENT_LEFT".equals(lyDo)
-                ? "doi thu da roi phong" : "tau cua ban da bi chim het";
-        String thongBao = thang ? "BAN THANG! (" + moTaLyDo + ")"
-                : "BAN THUA! (" + moTaThua + ")";
+        boolean thang = Protocol.RESULT_WIN.equals(ketQua);
+        boolean doiThuBoDi = Protocol.REASON_OPPONENT_LEFT.equals(lyDo);
+
+        String moTaLyDo;
+        if (doiThuBoDi) {
+            moTaLyDo = "doi thu da roi phong";
+        } else {
+            moTaLyDo = thang ? "ban da ban chim het tau doi thu"
+                    : "tau cua ban da bi chim het";
+        }
+        String thongBao = (thang ? "BAN THANG! " : "BAN THUA! ") + "(" + moTaLyDo + ")";
         log(thongBao);
         setStatus(thongBao);
-        JOptionPane.showMessageDialog(this, thongBao, "Ket thuc van dau",
-                thang ? JOptionPane.INFORMATION_MESSAGE : JOptionPane.WARNING_MESSAGE);
+
+        // Doi thu bo di thi khong con ai de choi lai, chi ve lobby duoc.
+        if (doiThuBoDi) {
+            JOptionPane.showMessageDialog(this,
+                    thongBao + "\nBan se quay ve danh sach phong.",
+                    "Ket thuc van dau", JOptionPane.INFORMATION_MESSAGE);
+            app.doLeaveRoom();
+            return;
+        }
+
+        hoiChoiLai(thongBao);
+    }
+
+    /**
+     * Hoi nguoi choi muon danh tiep hay ve lobby.
+     *
+     * <p>Server da tu mo mot van moi (gui PLACE_PHASE) ngay sau khi van cu
+     * ket thuc, nen chon "Choi lai" chi don gian la o lai va dat tau tiep.
+     * Chon "Ve lobby" thi roi phong.
+     */
+    private void hoiChoiLai(String thongBao) {
+        int chon = JOptionPane.showOptionDialog(this,
+                thongBao + "\n\nBan muon lam gi tiep?",
+                "Ket thuc van dau",
+                JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null,
+                new String[] { "Choi lai mot van", "Ve danh sach phong" },
+                "Choi lai mot van");
+
+        if (chon == JOptionPane.NO_OPTION) {
+            app.doLeaveRoom();
+        } else {
+            log("Ban chon choi lai. Hay dat tau cho van moi.");
+        }
     }
 
     private BoardView.Mark doiMark(String ketQua) {

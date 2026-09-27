@@ -1,6 +1,7 @@
 package bantau.server;
 
 import bantau.common.Packet;
+import bantau.common.PacketType;
 import bantau.common.Protocol;
 import bantau.server.db.DaoRam;
 import bantau.server.db.Database;
@@ -38,6 +39,7 @@ public class ServerMain {
         ExecutorService pool = Executors.newCachedThreadPool();
 
         chonNoiLuuTru();
+        batDauCanhGac();
 
         try (ServerSocket server = new ServerSocket(port)) {
             System.out.println("=== SERVER BAN TAU ONLINE ===");
@@ -81,6 +83,65 @@ public class ServerMain {
             System.out.println("[CSDL] CHE DO KHONG CSDL: tai khoan chi luu tam trong"
                     + " bo nho, tat server la mat.");
         }
+    }
+
+    /**
+     * THREAD CANH GAC - PHAT HIEN CLIENT DA CHET
+     *
+     * <p>Cu {@link Protocol#PING_INTERVAL_SECONDS} giay mot lan, thread nay
+     * gui PING toi moi nguoi dang online. Client nhan duoc thi tra PONG ngay,
+     * va {@link ClientHandler} ghi lai moc thoi gian do.
+     *
+     * <p>Ai im lang qua {@link Protocol#TIMEOUT_SECONDS} giay thi bi ngat ket
+     * noi. Viec ngat se lam {@code readObject()} o thread cua nguoi do bat
+     * duoc loi, chay vao khoi finally roi don dep: go khoi phong, xu thua
+     * neu dang danh do, tra ten ve cho nguoi khac dung.
+     *
+     * <p><b>Vi sao khong the thieu:</b> TCP chi bao loi khi mot ben DONG
+     * SOCKET dang hoang. Rut day mang hay tat nguon thi khong co goi tin nao
+     * duoc gui di ca, server khong he hay biet va cu cho mai mai.
+     *
+     * <p>Dung thread daemon de no khong giu chuong trinh song khi server dung.
+     */
+    private static void batDauCanhGac() {
+        Thread canhGac = new Thread(() -> {
+            int giay = 0;
+            while (true) {
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return;
+                }
+                giay++;
+
+                // Moi giay: kiem tra ai het gio suy nghi.
+                // Phai quet moi giay chu khong phai moi 10 giay, neu khong
+                // dong ho tren man hinh nguoi choi se lech toi 10 giay so
+                // voi luc server thuc su chuyen luot.
+                for (Room r : ROOMS.tatCaPhong()) {
+                    r.kiemTraHetGio();
+                }
+
+                // Moi PING_INTERVAL_SECONDS giay: hoi xem ai con song.
+                if (giay % Protocol.PING_INTERVAL_SECONDS == 0) {
+                    Packet ping = Packet.of(PacketType.PING);
+                    for (ClientHandler c : USERS.values()) {
+                        if (c.soGiayImLang() > Protocol.TIMEOUT_SECONDS) {
+                            c.ngatKetNoi("khong tra loi PING trong "
+                                    + Protocol.TIMEOUT_SECONDS + " giay");
+                        } else {
+                            c.send(ping);
+                        }
+                    }
+                }
+            }
+        }, "canh-gac");
+        canhGac.setDaemon(true);
+        canhGac.start();
+        System.out.println("[CANH GAC] Moi luot " + Protocol.TURN_SECONDS
+                + " giay. PING moi " + Protocol.PING_INTERVAL_SECONDS
+                + " giay, ngat sau " + Protocol.TIMEOUT_SECONDS + " giay im lang.");
     }
 
     public static PlayerDao players() {

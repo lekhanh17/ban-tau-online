@@ -13,6 +13,25 @@ public final class Protocol {
     public static final int DEFAULT_PORT = 5000;
     public static final String DEFAULT_HOST = "127.0.0.1";
 
+    /* ===== Phat hien client chet (PING/PONG) ===== */
+
+    /**
+     * Bao nhieu giay server gui PING mot lan.
+     *
+     * <p><b>Vi sao can PING:</b> TCP khong bao ngay khi ben kia bien mat.
+     * Nguoi choi dong chuong trinh dang hoang thi socket duoc dong tu te va
+     * server biet lien. Nhung neu ho RUT DAY MANG, tat Wi-Fi hay may sap
+     * nguon thi khong ai gui goi tin dong ket noi ca - server cu ngoi cho
+     * mai, phong ket lai voi mot nguoi da chet.
+     *
+     * <p>Cach xu ly: server dinh ky hoi "con song khong", client nao khong
+     * tra loi trong {@link #TIMEOUT_SECONDS} giay thi coi nhu da chet.
+     */
+    public static final int PING_INTERVAL_SECONDS = 10;
+
+    /** Khong nghe thay gi tu client qua ngan nay giay thi coi nhu da chet. */
+    public static final int TIMEOUT_SECONDS = 30;
+
     /* ===== Gioi han phong ===== */
 
     public static final int MAX_PLAYERS_PER_ROOM = 2;
@@ -25,6 +44,16 @@ public final class Protocol {
      * Doi thanh false neu muon luan phien tuyet doi moi phat mot luot.
      */
     public static final boolean HIT_GRANTS_EXTRA_TURN = true;
+
+    /**
+     * So giay suy nghi cho moi luot. Qua ngan nay ma chua ban thi mat luot.
+     *
+     * <p><b>Dem gio o dau moi dung:</b> dong ho phai chay o SERVER. Neu de
+     * client tu dem roi tu bao "toi het gio" thi nguoi choi chi can sua
+     * client la ngoi bao lau cung duoc. Client chi HIEN THI dong ho cho
+     * nguoi choi nhin, con quyet dinh mat luot hay khong la cua server.
+     */
+    public static final int TURN_SECONDS = 30;
 
     /* ===== Ma loi ===== */
 

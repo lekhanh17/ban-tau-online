@@ -63,6 +63,11 @@ public class RoomManager {
         return rooms.size();
     }
 
+    /** Tat ca phong dang co, de thread canh gac duyet kiem tra het gio. */
+    public java.util.Collection<Room> tatCaPhong() {
+        return rooms.values();
+    }
+
     /**
      * Chup mot ban sao danh sach phong tai thoi diem goi.
      *

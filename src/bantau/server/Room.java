@@ -205,6 +205,16 @@ public class Room {
         return null;
     }
 
+    /**
+     * Kiem tra nguoi dang danh co het gio suy nghi chua.
+     * Thread canh gac ben {@link ServerMain} goi moi giay.
+     */
+    public synchronized void kiemTraHetGio() {
+        if (state == RoomState.PLAYING && game != null) {
+            game.kiemTraHetGio();
+        }
+    }
+
     /** @return null neu hop le, nguoc lai la ma loi */
     public synchronized String handleFire(ClientHandler c, int x, int y) {
         if (!contains(c)) {
