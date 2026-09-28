@@ -17,7 +17,7 @@ import java.util.Random;
 /**
  * Cong cu noi bo: kiem thu dong ho dem nguoc moi luot.
  *
- * <p>Kiem chung ba dieu: khong ban thi mat luot sau dung 30 giay, ban kip
+ * <p>Kiem chung 3 dieu: khong ban thi mat luot sau dung 30 giay, ban kip
  * thi giu duoc luot, va dong ho duoc dat lai moi khi sang luot moi.
  * Khong thuoc bai nop.
  */
