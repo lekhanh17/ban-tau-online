@@ -229,7 +229,7 @@ public class Room {
             return loi;
         }
 
-        // Van dau vua ket thuc: mo luon mot van moi cho hai nguoi choi lai.
+        // Van dau vua ket thuc: mo van moi cho hai nguoi choi lai.
         if (game.isFinished()) {
             batDauDatTau();
             manager.broadcastRoomList();
