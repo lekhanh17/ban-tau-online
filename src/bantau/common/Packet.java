@@ -80,7 +80,7 @@ public final class Packet implements Serializable {
     }
 
     /**
-     * Lay payload va ep kieu an toan.
+     * Lay payload & ep kieu an toan.
      *
      * <p>Neu ben kia gui sai kieu thi tra ve null thay vi nem
      * ClassCastException - chuong trinh khong sap.
