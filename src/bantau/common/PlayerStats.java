@@ -5,8 +5,8 @@ import java.io.Serializable;
 /**
  * THANH TICH CUA MOT NGUOI CHOI - dung cho bang xep hang.
  *
- * <p>Doi tuong BAT BIEN, server doc tu bang {@code players} roi gui nguyen
- * ca danh sach sang client, khong phai noi chuoi rieng le.
+ * <p>Doi tuong BAT BIEN, server doc tu bang {@code players} roi gui
+ *danh sach sang client, khong phai noi chuoi rieng le.
  */
 public final class PlayerStats implements Serializable {
 
