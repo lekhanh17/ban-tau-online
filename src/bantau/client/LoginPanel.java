@@ -35,6 +35,8 @@ public class LoginPanel extends JPanel {
     private final JTextField portField = new JTextField(String.valueOf(Protocol.DEFAULT_PORT), 6);
     private final JTextField nameField = new JTextField(12);
     private final JPasswordField passField = new JPasswordField(12);
+    private final javax.swing.JCheckBox sslBox =
+            new javax.swing.JCheckBox("Ma hoa duong truyen (TLS)", true);
     private final JButton loginButton = new JButton("Dang nhap");
     private final JButton registerButton = new JButton("Dang ky");
     private final JLabel statusLabel = new JLabel(" ", SwingConstants.CENTER);
@@ -77,6 +79,15 @@ public class LoginPanel extends JPanel {
         gc.gridx = 1;
         form.add(passField, gc);
 
+        // O tick nay de demo so sanh co ma hoa va khong ma hoa.
+        // Phai khop voi che do server dang chay, neu khong se khong ket noi duoc.
+        gc.gridx = 0;
+        gc.gridy = 4;
+        gc.gridwidth = 2;
+        sslBox.setToolTipText("Phai khop voi che do server dang chay");
+        form.add(sslBox, gc);
+        gc.gridwidth = 1;
+
         JPanel nutRow = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 0));
         loginButton.setPreferredSize(new Dimension(130, 34));
         registerButton.setPreferredSize(new Dimension(130, 34));
@@ -84,12 +95,12 @@ public class LoginPanel extends JPanel {
         nutRow.add(registerButton);
 
         gc.gridx = 0;
-        gc.gridy = 4;
+        gc.gridy = 5;
         gc.gridwidth = 2;
         gc.fill = GridBagConstraints.HORIZONTAL;
         form.add(nutRow, gc);
 
-        gc.gridy = 5;
+        gc.gridy = 6;
         JLabel ghiChu = new JLabel(
                 "<html><i>Chua co tai khoan? Nhap ten va mat khau roi bam Dang ky."
                         + "<br>Mat khau dai " + Protocol.PASS_MIN + "-" + Protocol.PASS_MAX
@@ -123,6 +134,9 @@ public class LoginPanel extends JPanel {
         char[] mk = passField.getPassword();
         String matKhau = new String(mk);
         java.util.Arrays.fill(mk, '\0');   // xoa dau vet trong bo nho
+
+        // Dat che do ma hoa truoc khi mo ket noi.
+        bantau.common.BaoMat.batSsl(sslBox.isSelected());
 
         app.doConnect(hostField.getText().trim(), port,
                 nameField.getText().trim(), matKhau, dangKy);

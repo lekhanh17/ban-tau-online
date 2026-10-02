@@ -1,5 +1,6 @@
 package bantau.server;
 
+import bantau.common.BaoMat;
 import bantau.common.Packet;
 import bantau.common.PacketType;
 import bantau.common.Protocol;
@@ -34,15 +35,30 @@ public class ServerMain {
     private static PlayerDao players;
     private static MatchDao matches;
 
+    /**
+     * Khoi dong server.
+     *
+     * <pre>
+     *   java bantau.server.ServerMain [cong] [ssl|nossl]
+     * </pre>
+     *
+     * <p>Tham so thu hai de demo so sanh: chay mot lan {@code nossl} roi bat
+     * goi tin se doc duoc mat khau nguyen van, chay lai voi {@code ssl} thi
+     * chi con byte ngau nhien.
+     */
     public static void main(String[] args) {
         int port = args.length > 0 ? Integer.parseInt(args[0]) : Protocol.DEFAULT_PORT;
+        if (args.length > 1) {
+            BaoMat.batSsl(!"nossl".equalsIgnoreCase(args[1]));
+        }
         ExecutorService pool = Executors.newCachedThreadPool();
 
         chonNoiLuuTru();
         batDauCanhGac();
 
-        try (ServerSocket server = new ServerSocket(port)) {
+        try (ServerSocket server = BaoMat.taoServerSocket(port)) {
             System.out.println("=== SERVER BAN TAU ONLINE ===");
+            System.out.println("Che do duong truyen: " + BaoMat.moTaCheDo());
             System.out.println("Dang lang nghe tai cong " + port + ".");
 
             while (true) {

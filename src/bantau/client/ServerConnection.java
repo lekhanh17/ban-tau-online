@@ -1,12 +1,12 @@
 package bantau.client;
 
+import bantau.common.BaoMat;
 import bantau.common.Packet;
 
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.net.InetSocketAddress;
 import java.net.Socket;
 
 import javax.swing.SwingUtilities;
@@ -51,9 +51,10 @@ public class ServerConnection {
     public void connect(String host, int port, Listener listener) throws IOException {
         this.listener = listener;
 
-        socket = new Socket();
-        socket.connect(new InetSocketAddress(host, port), 5000);
+        // BaoMat lo viec mo socket thuong hay socket co ma hoa TLS.
+        socket = BaoMat.taoSocket(host, port, 5000);
         socket.setTcpNoDelay(true);
+        System.out.println("[KET NOI] " + BaoMat.moTaKetNoi(socket));
 
         // THU TU BAT BUOC: luong ra truoc, flush(), roi moi luong vao.
         // Nguoc lai hai ben cung cho header cua nhau - treo vinh vien.
