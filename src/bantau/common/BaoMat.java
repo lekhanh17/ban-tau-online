@@ -1,15 +1,19 @@
 package bantau.common;
 
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.security.GeneralSecurityException;
+import java.security.KeyStore;
 
-import javax.net.ServerSocketFactory;
-import javax.net.SocketFactory;
-import javax.net.ssl.SSLServerSocketFactory;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManagerFactory;
 
 /**
  * MA HOA DUONG TRUYEN BANG SSL/TLS
@@ -48,7 +52,69 @@ public final class BaoMat {
     /** Co bat ma hoa khong. Doi bang {@link #batSsl(boolean)}. */
     private static boolean dungSsl = true;
 
+    /** Dung lai sau lan tao dau tien - doc file kho khoa mot lan la du. */
+    private static SSLContext boMa;
+
     private BaoMat() {
+    }
+
+    /**
+     * DUNG BO MA TLS TU FILE KHO KHOA.
+     *
+     * <p><b>Vi sao khong dung {@code System.setProperty} nhu cach thong
+     * thuong:</b> cach dat thuoc tinh he thong roi goi
+     * {@code SSLSocketFactory.getDefault()} chi chay dung khi tien trinh do
+     * CHI lam mot vai tro - hoac chi la server, hoac chi la client. Ly do la
+     * {@code getDefault()} <b>ghi nho bo tao socket ngay lan dung dau tien</b>
+     * va khong doc lai thuoc tinh he thong nua.
+     *
+     * <p>Do an nay co mot tien trinh lam ca hai vai tro: server mo cong lang
+     * nghe, roi chinh no khoi dong doi thu may - mot CLIENT - trong cung tien
+     * trinh. Khi do server da dung SSL truoc, bo tao socket mac dinh da bi
+     * ghi nho, nen thuoc tinh {@code trustStore} dat sau khong con tac dung.
+     * Bot di ket noi bang kho tin cay mac dinh cua JDK, khong he biet chung
+     * chi tu ky cua nhom, va bat tay TLS that bai voi loi:
+     *
+     * <pre>
+     *   PKIX path building failed:
+     *   unable to find valid certification path to requested target
+     * </pre>
+     *
+     * <p>Cach lam o day tranh han van de do: tu doc file kho khoa va dung
+     * mot {@link SSLContext} rieng, khong phu thuoc vao trang thai toan cuc
+     * cua JVM. File kho khoa dong hai vai tro:
+     * <ul>
+     *   <li><b>Kho khoa</b> (key store) cho phia server: chua khoa rieng,
+     *       dung de chung minh "toi dung la server nay".</li>
+     *   <li><b>Kho tin cay</b> (trust store) cho phia client: chi lay chung
+     *       chi ra, de biet "server nao co chung chi nay thi tin".</li>
+     * </ul>
+     */
+    private static synchronized SSLContext boMa() throws IOException {
+        if (boMa != null) {
+            return boMa;
+        }
+        try (InputStream tep = new FileInputStream(KEYSTORE)) {
+            KeyStore kho = KeyStore.getInstance(KeyStore.getDefaultType());
+            kho.load(tep, MAT_KHAU_KHO.toCharArray());
+
+            KeyManagerFactory khoaRieng = KeyManagerFactory.getInstance(
+                    KeyManagerFactory.getDefaultAlgorithm());
+            khoaRieng.init(kho, MAT_KHAU_KHO.toCharArray());
+
+            TrustManagerFactory tinCay = TrustManagerFactory.getInstance(
+                    TrustManagerFactory.getDefaultAlgorithm());
+            tinCay.init(kho);
+
+            SSLContext ctx = SSLContext.getInstance("TLS");
+            ctx.init(khoaRieng.getKeyManagers(), tinCay.getTrustManagers(), null);
+            boMa = ctx;
+            return ctx;
+
+        } catch (GeneralSecurityException e) {
+            throw new IOException("Khong doc duoc kho khoa " + KEYSTORE
+                    + ": " + e.getMessage(), e);
+        }
     }
 
     public static void batSsl(boolean bat) {
@@ -79,11 +145,7 @@ public final class BaoMat {
             return new ServerSocket(port);
         }
 
-        System.setProperty("javax.net.ssl.keyStore", KEYSTORE);
-        System.setProperty("javax.net.ssl.keyStorePassword", MAT_KHAU_KHO);
-
-        ServerSocketFactory factory = SSLServerSocketFactory.getDefault();
-        return factory.createServerSocket(port);
+        return boMa().getServerSocketFactory().createServerSocket(port);
     }
 
     /* ------------------------------------------------------------------ */
@@ -112,10 +174,7 @@ public final class BaoMat {
             return socket;
         }
 
-        System.setProperty("javax.net.ssl.trustStore", KEYSTORE);
-        System.setProperty("javax.net.ssl.trustStorePassword", MAT_KHAU_KHO);
-
-        SSLSocketFactory factory = (SSLSocketFactory) SSLSocketFactory.getDefault();
+        SSLSocketFactory factory = boMa().getSocketFactory();
         // Tham so cuoi: dong luon socket goc khi dong socket SSL.
         SSLSocket ssl = (SSLSocket) factory.createSocket(socket, host, port, true);
 

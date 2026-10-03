@@ -12,7 +12,16 @@ public enum RoomState {
     /** Du 2 nguoi, hai ben dang dat tau. Giai doan 6 se dung den. */
     PLACING,
     /** Dang danh. Giai doan 6 se dung den. */
-    PLAYING;
+    PLAYING,
+    /**
+     * Dang danh nhung MOT NGUOI VUA MAT KET NOI.
+     *
+     * <p>Ban do cua ca hai ben van duoc giu nguyen, dong ho luot bi tam
+     * dung. Phong cho nguoi do dang nhap lai trong
+     * {@link Protocol#RECONNECT_SECONDS} giay. Het han thi nguoi con lai
+     * duoc xu thang va phong tro ve {@link #WAITING}.
+     */
+    PAUSED;
 
     /** Mo ta bang tieng Viet de hien thi cho nguoi choi. */
     public String moTa() {
@@ -20,6 +29,7 @@ public enum RoomState {
             case WAITING -> "Dang cho nguoi choi";
             case PLACING -> "Dang dat tau";
             case PLAYING -> "Dang danh";
+            case PAUSED -> "Tam dung - cho doi thu vao lai";
         };
     }
 }

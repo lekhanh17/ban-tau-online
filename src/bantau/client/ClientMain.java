@@ -223,6 +223,19 @@ public class ClientMain extends JFrame implements ServerConnection.Listener {
 
             case GAME_OVER -> gamePanel.ketThucVan(p.arg(0), p.arg(1));
 
+            case OPPONENT_LOST -> gamePanel.doiThuMatKetNoi(
+                    p.arg(0), p.intArg(1, Protocol.RECONNECT_SECONDS));
+
+            case OPPONENT_BACK -> gamePanel.doiThuVaoLai(p.arg(0));
+
+            // Chinh minh vua vao lai van dang do sau khi rot mang.
+            case RESUME_DATA -> {
+                cards.show(root, CARD_GAME);
+                gamePanel.vaoLaiVan(p.payload(bantau.common.Board.class),
+                        p.arg(1), p.arg(0), p.arg(2),
+                        p.intArg(3, Protocol.TURN_SECONDS));
+            }
+
             case CHAT_MSG -> gamePanel.onChat(p.arg(0), p.arg(1));
 
             case SYSTEM -> gamePanel.log(p.arg(0));
@@ -256,15 +269,41 @@ public class ClientMain extends JFrame implements ServerConnection.Listener {
         }
     }
 
+    /**
+     * Mat ket noi - ve man hinh dang nhap, nhung dien san ten de vao lai nhanh.
+     *
+     * <p><b>Vi sao khong tu dong ket noi lai:</b> server bat buoc dang nhap
+     * lai bang mat khau truoc khi cho vao lai van - neu khong thi chi can
+     * biet ten nguoi khac la chiem duoc van dau cua ho. Ma client lai KHONG
+     * giu mat khau trong bo nho sau khi dang nhap xong (xoa ngay o
+     * {@code LOGIN_OK}), nen khong the tu gui lai duoc.
+     *
+     * <p>Doi lay su bat tien phai go lai mat khau, ta duoc hai thu: mat khau
+     * khong nam trong RAM ca buoi, va viec vao lai van duoc xac thuc dang
+     * hoang. Day la danh doi co chu dich, khong phai thieu sot.
+     */
     @Override
     public void onDisconnected(String lyDo) {
-        JOptionPane.showMessageDialog(this,
-                lyDo + "\nUng dung se quay ve man hinh dang nhap.",
-                "Mat ket noi", JOptionPane.ERROR_MESSAGE);
+        String tenCu = username;
         username = "";
         loginPanel.setBusy(false);
-        loginPanel.setStatus(lyDo);
         cards.show(root, CARD_LOGIN);
+
+        if (tenCu.isEmpty()) {
+            loginPanel.setStatusLoi(lyDo);
+            JOptionPane.showMessageDialog(this,
+                    lyDo + "\nUng dung se quay ve man hinh dang nhap.",
+                    "Mat ket noi", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        loginPanel.presetTen(tenCu);
+        loginPanel.setStatusLoi(lyDo);
+        JOptionPane.showMessageDialog(this,
+                lyDo + "\n\nNeu ban dang danh do, van dau duoc giu lai "
+                        + Protocol.RECONNECT_SECONDS + " giay."
+                        + "\nNhap lai mat khau va bam Dang nhap de vao lai van.",
+                "Mat ket noi", JOptionPane.WARNING_MESSAGE);
     }
 
     /* ------------------------------------------------------------------ */

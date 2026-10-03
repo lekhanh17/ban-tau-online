@@ -37,6 +37,14 @@ public enum PacketType {
     READY,
     /** args[0] = x, args[1] = y. Ban vao ban do doi thu. */
     FIRE,
+    /**
+     * Khong tham so. Xin server them mot doi thu may vao phong dang o.
+     *
+     * <p>Server khong tu danh thay. No khoi dong mot client bot RIENG, va
+     * client do ket noi nguoc lai vao server qua dung giao thuc BSP nhu moi
+     * nguoi choi khac. Xem {@code bantau.bot.BotClient}.
+     */
+    ADD_BOT,
 
     /* ===== Server gui xuong Client ===== */
 
@@ -74,12 +82,34 @@ public enum PacketType {
     READY_OK,
     /** args[0] = ten nguoi di truoc. */
     GAME_START,
-    /** args[0] = ten nguoi dang danh luot. */
+    /** args[0] = ten nguoi dang danh luot, args[1] = so giay suy nghi. */
     TURN,
     /** args[0]=x, args[1]=y, args[2]=ket qua, args[3]=ma tau neu CHIM. Ket qua phat ban CUA MINH. */
     FIRE_RESULT,
     /** Nhu tren nhung la phat ban cua DOI THU vao minh. */
     INCOMING,
     /** args[0] = WIN hoac LOSE, args[1] = ly do. */
-    GAME_OVER
+    GAME_OVER,
+
+    /* ===== Vao lai van khi rot mang ===== */
+
+    /**
+     * Doi thu vua mat ket noi, van dau tam dung.
+     * args[0] = ten doi thu, args[1] = so giay an han cho ho vao lai.
+     */
+    OPPONENT_LOST,
+    /** Doi thu da vao lai duoc, van dau tiep tuc. args[0] = ten doi thu. */
+    OPPONENT_BACK,
+    /**
+     * KHOI PHUC TOAN BO TRANG THAI VAN DAU cho nguoi vua vao lai.
+     *
+     * <p>payload = {@link Board} THAT cua chinh nguoi do (ke ca cac o da bi
+     * ban), args[0] = ten doi thu, args[1] = chuoi 100 ky tu mo ta nhung gi
+     * nguoi do DA BIET ve ban do doi thu, args[2] = ten nguoi dang danh
+     * luot, args[3] = so giay con lai cua luot.
+     *
+     * <p>Chu y args[1] chi chua thong tin nguoi do da ban ra duoc, khong he
+     * tiet lo vi tri tau doi thu o nhung o chua ban.
+     */
+    RESUME_DATA
 }

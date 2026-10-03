@@ -32,6 +32,24 @@ public final class Protocol {
     /** Khong nghe thay gi tu client qua ngan nay giay thi coi nhu da chet. */
     public static final int TIMEOUT_SECONDS = 30;
 
+    /**
+     * THOI GIAN AN HAN DE VAO LAI VAN DANG DO.
+     *
+     * <p>Khi mot nguoi dang danh bi mat ket noi, server KHONG xu thua ngay.
+     * No giu nguyen phong va toan bo ban do trong ngan nay giay, cho nguoi
+     * do dang nhap lai. Qua han ma khong thay thi nguoi con lai moi duoc
+     * xu thang.
+     *
+     * <p><b>Vi sao can:</b> Wi-Fi chap chon, rut day mang, may ngu dong hay
+     * chuong trinh bi tat dot ngot la chuyen thuong. Xu thua ngay lap tuc
+     * vi mot su co mang vai giay la trai nghiem rat te, va cung khong dung
+     * tinh than cua mot he thong mang chiu loi.
+     *
+     * <p>Thoi gian nay phai LON HON {@link #TIMEOUT_SECONDS}, vi server chi
+     * biet client da chet sau khi het thoi gian cho PONG.
+     */
+    public static final int RECONNECT_SECONDS = 60;
+
     /* ===== Gioi han phong ===== */
 
     public static final int MAX_PLAYERS_PER_ROOM = 2;
@@ -55,6 +73,27 @@ public final class Protocol {
      */
     public static final int TURN_SECONDS = 30;
 
+    /* ===== Doi thu may ===== */
+
+    /**
+     * Tien to ten tai khoan danh rieng cho bot.
+     *
+     * <p>Nguoi that KHONG duoc dang ky ten bat dau bang chuoi nay. Nho vay
+     * nhin ten la biet ngay day co phai doi thu may khong, va he thong co
+     * cho de doi xu khac di - cu the la khong ghi tran dau voi may vao thanh
+     * tich.
+     */
+    public static final String BOT_PREFIX = "May_";
+
+    /**
+     * Bot cho bao nhieu mili giay truoc moi phat ban.
+     *
+     * <p>Khong cho thi bot ban het ban do trong tich tac, nguoi choi khong
+     * kip nhin thay gi. Cung khong nen cho qua lau vi con dong ho
+     * {@link #TURN_SECONDS} giay moi luot.
+     */
+    public static final int BOT_DELAY_MS = 900;
+
     /* ===== Ma loi ===== */
 
     public static final String E_NAME_TAKEN = "E_NAME_TAKEN";
@@ -65,6 +104,10 @@ public final class Protocol {
     public static final String E_NO_ACCOUNT = "E_NO_ACCOUNT";
     public static final String E_DB_ERROR = "E_DB_ERROR";
     public static final String E_NOT_LOGGED_IN = "E_NOT_LOGGED_IN";
+    /** Ten bi he thong giu rieng, nguoi that khong duoc dung. */
+    public static final String E_NAME_RESERVED = "E_NAME_RESERVED";
+    /** Khong khoi dong duoc doi thu may. */
+    public static final String E_BOT_FAILED = "E_BOT_FAILED";
     public static final String E_BAD_STATE = "E_BAD_STATE";
     public static final String E_UNKNOWN_CMD = "E_UNKNOWN_CMD";
 
@@ -83,6 +126,8 @@ public final class Protocol {
     public static final String RESULT_LOSE = "LOSE";
     public static final String REASON_ALL_SUNK = "ALL_SUNK";
     public static final String REASON_OPPONENT_LEFT = "OPPONENT_LEFT";
+    /** Doi thu mat ket noi va khong vao lai kip trong thoi gian an han. */
+    public static final String REASON_OPPONENT_LOST = "OPPONENT_LOST";
 
     /* ===== Rang buoc ten nguoi choi ===== */
 

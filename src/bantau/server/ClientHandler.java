@@ -187,6 +187,8 @@ public class ClientHandler implements Runnable {
 
             case FIRE -> xuLyBan(packet.intArg(0, -1), packet.intArg(1, -1));
 
+            case ADD_BOT -> xuLyThemBot();
+
             default ->
                     sendError(Protocol.E_UNKNOWN_CMD,
                             "Client khong duoc phep gui ban tin loai " + packet.type());
@@ -237,6 +239,16 @@ public class ClientHandler implements Runnable {
             return;
         }
 
+        // Tien to nay danh rieng cho doi thu may. Khong chan thi nguoi choi
+        // co the dang ky ten giong bot, va luat "khong tinh thanh tich tran
+        // voi may" se bi loi dung de giau nhung tran thua.
+        if (n.toLowerCase().startsWith(Protocol.BOT_PREFIX.toLowerCase())) {
+            sendError(Protocol.E_NAME_RESERVED,
+                    "Ten bat dau bang \"" + Protocol.BOT_PREFIX
+                            + "\" danh rieng cho doi thu may");
+            return;
+        }
+
         String err = ServerMain.players().dangKy(n, matKhau);
         if (err != null) {
             sendError(err, moTaLoi(err));
@@ -274,8 +286,22 @@ public class ClientHandler implements Runnable {
         send(Packet.of(PacketType.LOGIN_OK, n));
         send(Packet.of(PacketType.SYSTEM,
                 "Dang co " + ServerMain.onlineCount() + " nguoi online."));
-        ServerMain.rooms().sendRoomList(this);
         System.out.println("Dang nhap: " + n + " (online: " + ServerMain.onlineCount() + ")");
+
+        // Truoc do co bi rot mang giua van khong? Neu co va chua het thoi
+        // gian an han thi dua thang vao lai van dang do, khong qua lobby.
+        Room cho = ServerMain.rooms().timPhongChoVaoLai(n);
+        if (cho != null) {
+            String loiVaoLai = cho.vaoLai(this);
+            if (loiVaoLai == null) {
+                send(Packet.of(PacketType.SYSTEM,
+                        "Da khoi phuc van dau dang do cua ban."));
+                return;
+            }
+            System.out.println("Khong dua " + n + " vao lai duoc: " + loiVaoLai);
+        }
+
+        ServerMain.rooms().sendRoomList(this);
     }
 
     private void xuLyChat(String noiDung) {
@@ -366,13 +392,67 @@ public class ClientHandler implements Runnable {
         }
     }
 
+    /**
+     * Them mot doi thu may vao phong dang o.
+     *
+     * <p>Server KHONG tu danh thay. No khoi dong mot client bot rieng, va
+     * client do ket noi NGUOC LAI vao chinh server nay qua TCP, dang nhap
+     * va vao phong bang dung nhung ban tin ma client Swing dung. Server khong
+     * he biet day la may hay nguoi - va do chinh la diem manh: no chung minh
+     * giao thuc BSP day du va doc lap voi giao dien.
+     *
+     * <p>Noi vao {@code 127.0.0.1} chu khong phai dia chi ngoai: bot chay
+     * trong cung tien trinh server nen luon di duoc duong loopback, va khong
+     * phu thuoc vao cau hinh mang cua may.
+     */
+    private void xuLyThemBot() {
+        Room r = room;
+        if (r == null) {
+            sendError(Protocol.E_NOT_IN_ROOM, "Ban chua o trong phong nao");
+            return;
+        }
+        String loi = r.coTheThemBot();
+        if (loi != null) {
+            sendError(loi, "Khong them doi thu may vao luc nay duoc");
+            return;
+        }
+        try {
+            bantau.bot.BotClient bot = new bantau.bot.BotClient(
+                    "127.0.0.1", ServerMain.congDangChay(), r.getId());
+
+            // Dang ky tai khoan cho bot TU BEN TRONG server, qua thang
+            // PlayerDao. Bot khong the tu gui REGISTER vi duong REGISTER
+            // cong khai chan moi ten bat dau bang BOT_PREFIX.
+            String loiDangKy = ServerMain.players()
+                    .dangKy(bot.ten(), bot.matKhau());
+            if (loiDangKy != null) {
+                sendError(Protocol.E_BOT_FAILED,
+                        "Khong tao duoc tai khoan cho doi thu may");
+                return;
+            }
+
+            bot.chay();
+            send(Packet.of(PacketType.SYSTEM,
+                    "Dang goi doi thu may (" + bot.ten() + ") vao phong..."));
+            System.out.println("Them bot " + bot.ten() + " vao phong #"
+                    + r.getId() + " theo yeu cau cua " + username);
+        } catch (RuntimeException e) {
+            sendError(Protocol.E_BOT_FAILED,
+                    "Khong khoi dong duoc doi thu may: " + e.getMessage());
+        }
+    }
+
     private void donDep() {
         closed = true;
         Room r = room;
         if (r != null) {
             // Client tat dot ngot van phai duoc go khoi phong, neu khong
             // phong se ket vinh vien voi mot nguoi da chet.
-            r.leave(this);
+            //
+            // Nhung neu dang danh do thi KHONG xu thua ngay: ketNoiBiMat()
+            // giu nguyen ban do va cho nguoi do dang nhap lai trong
+            // Protocol.RECONNECT_SECONDS giay.
+            r.ketNoiBiMat(this);
         }
         String ten = username;
         if (ten != null) {

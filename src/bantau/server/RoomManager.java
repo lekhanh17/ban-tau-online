@@ -63,6 +63,32 @@ public class RoomManager {
         return rooms.size();
     }
 
+    /**
+     * TIM PHONG DANG CHO NGUOI NAY VAO LAI.
+     *
+     * <p>Goi ngay sau khi mot nguoi dang nhap thanh cong. Neu truoc do ho bi
+     * rot mang giua van va thoi gian an han chua het, ham nay tra ve dung
+     * phong do de dua ho tro lai van dang do.
+     *
+     * <p>Tim theo TEN chu khong phai theo dia chi IP hay so socket: ket noi
+     * cu da chet nen khong con gi de doi chieu, va nguoi choi hoan toan co
+     * the vao lai tu mot mang khac - chuyen tu Wi-Fi sang 4G chang han.
+     * Dieu bao dam ho dung la ho chinh la mat khau da nhap luc dang nhap.
+     *
+     * @return phong dang cho, hoac null neu khong co
+     */
+    public Room timPhongChoVaoLai(String ten) {
+        if (ten == null || ten.isBlank()) {
+            return null;
+        }
+        for (Room r : rooms.values()) {
+            if (r.dangChoVaoLai(ten)) {
+                return r;
+            }
+        }
+        return null;
+    }
+
     /** Tat ca phong dang co, de thread canh gac duyet kiem tra het gio. */
     public java.util.Collection<Room> tatCaPhong() {
         return rooms.values();

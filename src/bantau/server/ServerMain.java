@@ -36,6 +36,16 @@ public class ServerMain {
     private static MatchDao matches;
 
     /**
+     * Cong server dang lang nghe. Phai nho lai vi doi thu may la mot client
+     * that - no can biet ket noi nguoc vao dau.
+     */
+    private static int congDangChay = Protocol.DEFAULT_PORT;
+
+    public static int congDangChay() {
+        return congDangChay;
+    }
+
+    /**
      * Khoi dong server.
      *
      * <pre>
@@ -48,6 +58,7 @@ public class ServerMain {
      */
     public static void main(String[] args) {
         int port = args.length > 0 ? Integer.parseInt(args[0]) : Protocol.DEFAULT_PORT;
+        congDangChay = port;
         if (args.length > 1) {
             BaoMat.batSsl(!"nossl".equalsIgnoreCase(args[1]));
         }
@@ -137,6 +148,8 @@ public class ServerMain {
                 // voi luc server thuc su chuyen luot.
                 for (Room r : ROOMS.tatCaPhong()) {
                     r.kiemTraHetGio();
+                    // Va ai da het thoi gian an han de vao lai van.
+                    r.kiemTraChoVaoLai();
                 }
 
                 // Moi PING_INTERVAL_SECONDS giay: hoi xem ai con song.
@@ -158,6 +171,8 @@ public class ServerMain {
         System.out.println("[CANH GAC] Moi luot " + Protocol.TURN_SECONDS
                 + " giay. PING moi " + Protocol.PING_INTERVAL_SECONDS
                 + " giay, ngat sau " + Protocol.TIMEOUT_SECONDS + " giay im lang.");
+        System.out.println("[VAO LAI] Rot mang giua van duoc giu phong "
+                + Protocol.RECONNECT_SECONDS + " giay de dang nhap lai.");
     }
 
     public static PlayerDao players() {

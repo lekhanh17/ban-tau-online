@@ -166,6 +166,18 @@ public class LoginPanel extends JPanel {
         nameField.requestFocusInWindow();
     }
 
+    /**
+     * Dien san ten nguoi choi va dua con tro vao o mat khau.
+     *
+     * <p>Dung khi vua mat ket noi: nguoi choi chi phai go lai mat khau roi
+     * bam Dang nhap la vao lai duoc van dang do.
+     */
+    public void presetTen(String ten) {
+        nameField.setText(ten == null ? "" : ten);
+        passField.setText("");
+        passField.requestFocusInWindow();
+    }
+
     /** Dien san dia chi server truyen qua tham so dong lenh. */
     public void presetServer(String host, String port) {
         hostField.setText(host);

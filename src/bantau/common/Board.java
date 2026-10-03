@@ -310,6 +310,37 @@ public class Board implements Serializable {
         return '.';                               // o chua biet
     }
 
+    /**
+     * MA HOA NHUNG GI DOI THU DA BIET VE BAN DO NAY - dung khi vao lai van.
+     *
+     * <p>Tra ve dung 100 ky tu, doc theo hang tu tren xuong duoi:
+     * <pre>
+     *   '.'  o chua ai ban - KHONG tiet lo co tau hay khong
+     *   'o'  da ban, truot
+     *   'X'  da ban, trung mot tau chua chim
+     *   '#'  da ban, tau o o nay da chim han
+     * </pre>
+     *
+     * <p><b>Day la diem bao mat quan trong.</b> Khi mot nguoi vao lai van,
+     * server phai ve lai ban co doi thu tren man hinh cua ho. Cach de nhat
+     * la gui nguyen doi tuong Board cua doi thu - nhung lam vay la gui luon
+     * vi tri tat ca tau, nguoi choi chi can doc goi tin la biet het.
+     *
+     * <p>Vi vay server chi gui dung LUONG THONG TIN NGUOI DO DA CO: ket qua
+     * cua nhung phat ban ho da ban ra. O nao chua ban van la dau cham.
+     *
+     * @see #veBanDo(boolean) phien ban co dinh dang de in ra console
+     */
+    public String maDoiThuThay() {
+        StringBuilder sb = new StringBuilder(SIZE * SIZE);
+        for (int y = 0; y < SIZE; y++) {
+            for (int x = 0; x < SIZE; x++) {
+                sb.append(kyTuO(x, y, false));
+            }
+        }
+        return sb.toString();
+    }
+
     /** Chu giai cho ban do ky tu. */
     public static String chuGiai() {
         return ".  o chua ban    o  ban truot    X  trung    #  tau da chim\n"
