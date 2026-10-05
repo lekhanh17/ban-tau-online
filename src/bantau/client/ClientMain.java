@@ -316,7 +316,7 @@ public class ClientMain extends JFrame implements ServerConnection.Listener {
             try {
                 UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
             } catch (Exception ignored) {
-                // dung giao dien mac dinh
+                // giao dien mac dinh
             }
             ClientMain frame = new ClientMain();
             frame.loginPanel.presetServer(host, port);
