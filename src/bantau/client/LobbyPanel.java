@@ -110,7 +110,7 @@ public class LobbyPanel extends JPanel {
     /**
      * Cap nhat bang tu danh sach doi tuong RoomInfo.
      *
-     * <p>Khong phai tach chuoi gi ca vi server gui thang doi tuong sang.
+     * <p>Ko phai tach chuoi gi ca vi server gui thang doi tuong sang.
      */
     public void updateRooms(List<RoomInfo> danhSach) {
         // Nho lai phong dang chon de chon lai sau khi lam moi.
