@@ -66,7 +66,7 @@ public class LobbyPanel extends JPanel {
         });
         joinButton.addActionListener(e -> vaoPhongDangChon());
 
-        // Ben trai la hai nut xem thong ke tu CSDL, ben phai la nut thao tac phong.
+        // Ben trai la 2 nut xem thong ke tu CSDL, ben phai la nut thao tac phong.
         JPanel thongKe = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
         thongKe.add(rankButton);
         thongKe.add(historyButton);
