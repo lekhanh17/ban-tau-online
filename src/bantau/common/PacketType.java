@@ -38,11 +38,15 @@ public enum PacketType {
     /** args[0] = x, args[1] = y. Ban vao ban do doi thu. */
     FIRE,
     /**
-     * Khong tham so. Xin server them mot doi thu may vao phong dang o.
+     * args[0] = muc do kho ({@link MucDoBot}: DE / THUONG / KHO).
+     * Xin server them mot doi thu may vao phong dang o.
      *
      * <p>Server khong tu danh thay. No khoi dong mot client bot RIENG, va
      * client do ket noi nguoc lai vao server qua dung giao thuc BSP nhu moi
      * nguoi choi khac. Xem {@code bantau.bot.BotClient}.
+     *
+     * <p>Thieu args[0] thi server hieu la {@link MucDoBot#THUONG}, nen mot
+     * client ban cu van dung duoc ban tin nay.
      */
     ADD_BOT,
 

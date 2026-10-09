@@ -1,6 +1,7 @@
 package bantau.server;
 
 import bantau.common.Board;
+import bantau.common.MucDoBot;
 import bantau.common.Packet;
 import bantau.common.PacketType;
 import bantau.common.Protocol;
@@ -187,7 +188,7 @@ public class ClientHandler implements Runnable {
 
             case FIRE -> xuLyBan(packet.intArg(0, -1), packet.intArg(1, -1));
 
-            case ADD_BOT -> xuLyThemBot();
+            case ADD_BOT -> xuLyThemBot(packet.arg(0));
 
             default ->
                     sendError(Protocol.E_UNKNOWN_CMD,
@@ -404,8 +405,11 @@ public class ClientHandler implements Runnable {
      * <p>Noi vao {@code 127.0.0.1} chu khong phai dia chi ngoai: bot chay
      * trong cung tien trinh server nen luon di duoc duong loopback, va khong
      * phu thuoc vao cau hinh mang cua may.
+     *
+     * @param maMucDo ten muc do kho tu args[0] cua ADD_BOT; chuoi rong hoac
+     *                khong hop le thi dung {@link MucDoBot#THUONG}
      */
-    private void xuLyThemBot() {
+    private void xuLyThemBot(String maMucDo) {
         Room r = room;
         if (r == null) {
             sendError(Protocol.E_NOT_IN_ROOM, "Ban chua o trong phong nao");
@@ -416,9 +420,10 @@ public class ClientHandler implements Runnable {
             sendError(loi, "Khong them doi thu may vao luc nay duoc");
             return;
         }
+        MucDoBot mucDo = MucDoBot.tuChuoi(maMucDo);
         try {
             bantau.bot.BotClient bot = new bantau.bot.BotClient(
-                    "127.0.0.1", ServerMain.congDangChay(), r.getId());
+                    "127.0.0.1", ServerMain.congDangChay(), r.getId(), mucDo);
 
             // Dang ky tai khoan cho bot TU BEN TRONG server, qua thang
             // PlayerDao. Bot khong the tu gui REGISTER vi duong REGISTER
@@ -433,9 +438,11 @@ public class ClientHandler implements Runnable {
 
             bot.chay();
             send(Packet.of(PacketType.SYSTEM,
-                    "Dang goi doi thu may (" + bot.ten() + ") vao phong..."));
-            System.out.println("Them bot " + bot.ten() + " vao phong #"
-                    + r.getId() + " theo yeu cau cua " + username);
+                    "Dang goi doi thu may (" + bot.ten() + ", muc "
+                            + mucDo.ten() + ") vao phong..."));
+            System.out.println("Them bot " + bot.ten() + " muc " + mucDo.ten()
+                    + " vao phong #" + r.getId()
+                    + " theo yeu cau cua " + username);
         } catch (RuntimeException e) {
             sendError(Protocol.E_BOT_FAILED,
                     "Khong khoi dong duoc doi thu may: " + e.getMessage());

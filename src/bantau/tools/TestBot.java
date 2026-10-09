@@ -2,6 +2,7 @@ package bantau.tools;
 
 import bantau.common.BaoMat;
 import bantau.common.Board;
+import bantau.common.MucDoBot;
 import bantau.common.Packet;
 import bantau.common.PacketType;
 import bantau.common.Protocol;
@@ -12,7 +13,6 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -21,17 +21,21 @@ import java.util.concurrent.TimeUnit;
 /**
  * TEST TU DONG CHO CHUC NANG CHOI VOI MAY
  *
- * <p>Kiem tra ba nhom:
- * <ol>
- *   <li><b>Ket noi:</b> bot co that su la mot client TCP rieng khong - no co
- *       dang nhap, vao phong, dat tau va ban qua dung giao thuc BSP khong.
+ * <p><b>Test nay kiem tra phan MANG, khong phai suc manh thuat toan.</b> Hai
+ * viec do duoc tach ra co chu dich:
+ * <ul>
+ *   <li>Suc manh thuat toan do bang {@link MoPhongBot} - chay 2000 van moi
+ *       muc trong vai giay, khong can server. So lieu dang tin vi nhieu van.
  *   </li>
- *   <li><b>Thuat toan:</b> so phat bot can de ban chim het 17 o tau phai IT
- *       HON RO RET so voi ban bua. Ban bua trung binh can khoang 95 phat;
- *       san - diet phai duoi 85 phat moi coi la co tac dung.</li>
- *   <li><b>Luat:</b> tran voi may khong duoc ghi vao thanh tich, va nguoi
- *       that khong dang ky duoc ten bat dau bang {@code May_}.</li>
- * </ol>
+ *   <li>Test nay kiem tra <b>duong day di qua mang</b>: ban tin ADD_BOT co
+ *       mang dung muc do den server khong, bot co that su la mot client TCP
+ *       rieng khong, no co dang nhap - vao phong - dat tau - ban qua dung
+ *       giao thuc BSP khong, va hai quy tac rieng cho bot co con dung khong.
+ *   </li>
+ * </ul>
+ *
+ * <p>Vi moi phat ban cua bot cach nhau {@code BOT_DELAY_MS}, chay tron ba
+ * muc mat vai phut - do la ly do khong do thong ke o day.
  *
  * <p><b>Cach chay:</b> bat server truoc, roi
  * {@code java -cp "bin;lib/*" bantau.tools.TestBot 5100}.
@@ -135,39 +139,20 @@ public final class TestBot {
         int port = args.length > 0 ? Integer.parseInt(args[0]) : 5100;
         BaoMat.batSsl(false);
 
-        System.out.println("=== TEST CHOI VOI MAY ===");
+        System.out.println("=== TEST CHOI VOI MAY (phan mang) ===");
         System.out.println();
 
         kiemTraTenDanhRieng(port);
         System.out.println();
-        List<Integer> soPhat = new ArrayList<>();
-        // Choi nhieu van roi lay trung binh: moi van ban do dat ngau nhien
-        // nen so phat can thiet dao dong khong it.
-        for (int van = 1; van <= 3; van++) {
-            System.out.println("--- Van " + van + " ---");
-            Integer n = choiMotVan(port);
-            if (n != null) {
-                soPhat.add(n);
-            }
+
+        for (MucDoBot muc : MucDoBot.values()) {
+            System.out.println("--- Muc " + muc.ten() + " ---");
+            choiMotVan(port, muc);
             System.out.println();
         }
 
-        System.out.println("--- Thuat toan ---");
-        kiemTra("Do duoc it nhat mot van may thang", !soPhat.isEmpty());
-        if (!soPhat.isEmpty()) {
-            int tong = 0;
-            for (int n : soPhat) {
-                tong += n;
-            }
-            int tb = tong / soPhat.size();
-
-            System.out.println("  So phat may can de chim het 17 o tau: " + soPhat
-                    + ", trung binh " + tb);
-            kiemTra("Thuat toan san-diet tot hon ban bua"
-                            + " (trung binh " + tb + " phat, ban bua ~95)",
-                    tb < 85);
-        }
-
+        System.out.println("Ghi chu: so lieu suc manh thuat toan do bang"
+                + " MoPhongBot (2000 van moi muc), khong do o day.");
         System.out.println();
         System.out.println("=== KET QUA: " + soDung + " DUNG, " + soSai + " SAI ===");
         if (soSai > 0) {
@@ -189,15 +174,37 @@ public final class TestBot {
     }
 
     /**
-     * Choi tron mot van voi may va dem so phat may can de thang.
+     * Doc ten tai khoan bot tu ban tin SYSTEM ma server gui ve sau ADD_BOT.
      *
-     * <p>Nguoi test co y danh cham va deu: moi luot ban dung mot o theo thu
-     * tu. Nho vay may gan nhu chac chan thang truoc, va ta do duoc so phat
-     * may thuc su can.
+     * <p>Ban tin co dang {@code "Dang goi doi thu may (May_K1_abcd, muc
+     * Kho) vao phong..."}. Ham nay lay ra cai ten bat dau bang
+     * {@link Protocol#BOT_PREFIX}.
      *
-     * @return so phat may da ban, null neu van khong ket thuc duoc
+     * @return ten bot, hoac chuoi rong neu khong thay
      */
-    private static Integer choiMotVan(int port) throws Exception {
+    private static String choTenBot(Nguoi toi, int giay) throws InterruptedException {
+        long hetHan = System.currentTimeMillis() + giay * 1000L;
+        while (System.currentTimeMillis() < hetHan) {
+            Packet p = toi.cho(PacketType.SYSTEM, 2);
+            if (p == null) {
+                continue;
+            }
+            for (String tu : p.arg(0).split("[\\s(),]+")) {
+                if (tu.startsWith(Protocol.BOT_PREFIX)) {
+                    return tu;
+                }
+            }
+        }
+        return "";
+    }
+
+    /**
+     * Choi tron mot van voi may o mot muc do, va kiem tra ca duong day mang.
+     *
+     * <p>Nguoi test ban theo thu tu o, moi luot mot o - khong can thang hay
+     * thua, chi can van dau chay tron ven.
+     */
+    private static void choiMotVan(int port, MucDoBot muc) throws Exception {
         String ten = "tb" + (System.currentTimeMillis() % 1000000);
         Nguoi toi = new Nguoi(ten, port);
 
@@ -212,17 +219,27 @@ public final class TestBot {
         kiemTra("Tao duoc phong", joined != null);
         if (joined == null) {
             toi.dong();
-            return null;
+            return;
         }
 
-        // ----- Goi doi thu may -----
-        toi.gui(Packet.of(PacketType.ADD_BOT));
+        // ----- Goi doi thu may o muc do nay -----
+        toi.gui(Packet.of(PacketType.ADD_BOT, muc.name()));
+
+        // Server tra ve mot ban tin SYSTEM co kem ten tai khoan bot vua tao.
+        // Ten do mang chu dau cua muc do (May_D.. / May_T.. / May_K..), nen
+        // doc no la kiem tra duoc tham so muc do DA DI QUA MANG den dung noi.
+        String tenBot = choTenBot(toi, 15);
+        String tienToMong = Protocol.BOT_PREFIX + muc.name().charAt(0);
+        kiemTra("ADD_BOT mang dung muc do qua mang (ten bot \"" + tenBot
+                        + "\" bat dau bang \"" + tienToMong + "\")",
+                tenBot.startsWith(tienToMong));
+
         Packet datTau = toi.cho(PacketType.PLACE_PHASE, 15);
         kiemTra("May vao phong va chuyen sang giai doan dat tau",
                 datTau != null);
         if (datTau == null) {
             toi.dong();
-            return null;
+            return;
         }
 
         Board banDo = new Board();
@@ -233,7 +250,7 @@ public final class TestBot {
         kiemTra("Van dau bat dau - may da tu dat tau xong", batDau != null);
         if (batDau == null) {
             toi.dong();
-            return null;
+            return;
         }
 
         // ----- Choi -----
@@ -252,7 +269,6 @@ public final class TestBot {
                 case INCOMING -> mayDaBan++;
                 case TURN -> {
                     if (ten.equals(p.arg(0)) && oKeTiep < 100) {
-                        // Danh cham va deu: moi luot dung mot o theo thu tu.
                         toi.gui(Packet.of(PacketType.FIRE,
                                 String.valueOf(oKeTiep % 10),
                                 String.valueOf(oKeTiep / 10)));
@@ -315,8 +331,8 @@ public final class TestBot {
                 !conPhongBot);
 
         toi.dong();
-        System.out.println("  (may ban " + mayDaBan + " phat, nguoi ban "
-                + oKeTiep + " phat)");
-        return Protocol.RESULT_LOSE.equals(ketQua) ? mayDaBan : null;
+        System.out.println("  (muc " + muc.ten() + ": may ban " + mayDaBan
+                + " phat, nguoi ban " + oKeTiep + " phat, ket qua cua nguoi: "
+                + ketQua + ")");
     }
 }

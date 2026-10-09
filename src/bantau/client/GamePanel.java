@@ -2,6 +2,7 @@ package bantau.client;
 
 import bantau.common.Board;
 import bantau.common.FireResult;
+import bantau.common.MucDoBot;
 import bantau.common.Orientation;
 import bantau.common.Packet;
 import bantau.common.PacketType;
@@ -25,6 +26,7 @@ import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -102,6 +104,10 @@ public class GamePanel extends JPanel {
 
     /** Nut goi doi thu may, nam o the "dang cho". */
     private final JButton nutGoiMay = new JButton("Choi voi may");
+
+    /** Chon muc do kho cho doi thu may. */
+    private final JComboBox<MucDoBot> chonMucDo =
+            new JComboBox<>(MucDoBot.values());
 
     private String tenPhong = "";
     private String doiThu = "-";
@@ -187,16 +193,21 @@ public class GamePanel extends JPanel {
     }
 
     /**
-     * The "dang cho": mot dong chu va nut goi doi thu may.
+     * The "dang cho": mot dong chu, o chon muc do kho va nut goi doi thu may.
      *
-     * <p>Nut nay chi gui ban tin ADD_BOT. Viec khoi dong bot do server lam,
-     * va bot ket noi nguoc lai nhu mot client binh thuong - client Swing
-     * khong he biet gi them ve no.
+     * <p>Nut nay chi gui ban tin ADD_BOT kem muc do. Viec khoi dong bot do
+     * server lam, va bot ket noi nguoc lai nhu mot client binh thuong -
+     * client Swing khong he biet gi them ve no, cung khong biet thuat toan
+     * nao dang chay ben trong bot.
      */
     private JPanel buildTheCho() {
         JLabel nhan = new JLabel(
                 "Dang cho du hai nguoi choi vao phong...", SwingConstants.CENTER);
         nhan.setFont(new Font("SansSerif", Font.PLAIN, 13));
+
+        chonMucDo.setSelectedItem(MucDoBot.THUONG);
+        capNhatChuGiaiMucDo();
+        chonMucDo.addActionListener(e -> capNhatChuGiaiMucDo());
 
         nutGoiMay.setPreferredSize(new java.awt.Dimension(190, 32));
         nutGoiMay.setToolTipText(
@@ -208,6 +219,8 @@ public class GamePanel extends JPanel {
         nhan.setAlignmentX(CENTER_ALIGNMENT);
 
         JPanel hangNut = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        hangNut.add(new JLabel("Muc do:"));
+        hangNut.add(chonMucDo);
         hangNut.add(nutGoiMay);
         hangNut.setAlignmentX(CENTER_ALIGNMENT);
 
@@ -216,17 +229,31 @@ public class GamePanel extends JPanel {
         return p;
     }
 
+    /** Hien mo ta cua muc do dang chon lam tooltip cua o chon. */
+    private void capNhatChuGiaiMucDo() {
+        MucDoBot m = mucDoDangChon();
+        chonMucDo.setToolTipText(m.ten() + ": " + m.moTa());
+    }
+
+    private MucDoBot mucDoDangChon() {
+        Object o = chonMucDo.getSelectedItem();
+        return o instanceof MucDoBot m ? m : MucDoBot.THUONG;
+    }
+
     /** Gui ADD_BOT va khoa nut lai de khong goi hai con bot vao mot phong. */
     private void goiDoiThuMay() {
+        MucDoBot m = mucDoDangChon();
         nutGoiMay.setEnabled(false);
+        chonMucDo.setEnabled(false);
         nutGoiMay.setText("Dang goi doi thu may...");
-        app.send(Packet.of(PacketType.ADD_BOT));
-        log("Da goi mot doi thu may vao phong.");
+        app.send(Packet.of(PacketType.ADD_BOT, m.name()));
+        log("Da goi mot doi thu may muc " + m.ten() + " vao phong.");
     }
 
     /** Mo lai nut khi quay ve trang thai cho - vi du bot vua thoat. */
     private void moLaiNutGoiMay() {
         nutGoiMay.setEnabled(true);
+        chonMucDo.setEnabled(true);
         nutGoiMay.setText("Choi voi may");
     }
 

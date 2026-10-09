@@ -3,22 +3,20 @@ package bantau.bot;
 import bantau.common.BaoMat;
 import bantau.common.Board;
 import bantau.common.FireResult;
+import bantau.common.MucDoBot;
 import bantau.common.Packet;
 import bantau.common.PacketType;
 import bantau.common.Protocol;
 import bantau.common.RoomInfo;
 import bantau.common.RoomState;
+import bantau.common.ShipType;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.security.SecureRandom;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.List;
+import java.util.Arrays;
 import java.util.Random;
 
 /**
@@ -33,9 +31,9 @@ import java.util.Random;
  * thuan tuy la logic game, khong lien quan gi den mang.
  *
  * <p>Lop nay lam nguoc lai. No la <b>mot client that</b>: tu mo
- * {@link Socket} noi vao server, tu dang ky tai khoan, tu dang nhap, tu vao
- * phong, tu gui READY va FIRE - bang dung nhung ban tin BSP ma client Swing
- * dang dung. Server khong he biet day la may hay nguoi.
+ * {@link Socket} noi vao server, tu dang nhap, tu vao phong, tu gui READY va
+ * FIRE - bang dung nhung ban tin BSP ma client Swing dang dung. Server khong
+ * he biet day la may hay nguoi.
  *
  * <pre>
  *   ClientMain (Swing)  ---BSP/TCP--->  Server  &lt;---BSP/TCP---  BotClient
@@ -53,8 +51,12 @@ import java.util.Random;
  *       hieu nang, khong can viet them gi.</li>
  * </ol>
  *
- * <p><b>Thuat toan:</b> san - diet (hunt and target), khong phai hoc may.
- * Xem {@link #chonOBan()}.
+ * <h2>Lop nay KHONG chua thuat toan</h2>
+ *
+ * <p>Viec chon o ban duoc giao cho {@link ChienThuatBan} - ba muc do la ba
+ * lop khac nhau. Lop nay chi lo phan mang: dang nhap, vao phong, gui va nhan
+ * ban tin. Nho tach nhu vay ma do duoc so lieu thuat toan bang
+ * {@code bantau.tools.MoPhongBot} ma khong can dung server.
  */
 public final class BotClient implements Runnable {
 
@@ -66,8 +68,12 @@ public final class BotClient implements Runnable {
     private final int roomId;
     private final String ten;
     private final String matKhau;
+    private final MucDoBot mucDo;
 
     private final Random rnd = new Random();
+
+    /** Cach chon o ban, tuy theo muc do kho. */
+    private final ChienThuatBan chienThuat;
 
     private Socket socket;
     private ObjectOutputStream out;
@@ -76,29 +82,42 @@ public final class BotClient implements Runnable {
     /** Ban do that cua bot, de biet minh con tau nao. */
     private final Board banDoMinh = new Board();
 
-    /** O nao bot da ban roi - khong ban lai. */
-    private final boolean[][] daBan = new boolean[Board.SIZE][Board.SIZE];
-
     /**
-     * Hang doi o can thu tiep theo. Khi ban TRUNG mot o, bon o ke no duoc
-     * day vao day de thu - vi tau nam lien nhau.
+     * O nao da GUI phat ban di - khong phai o nao da biet ket qua.
+     *
+     * <p>Hai thu nay khac nhau, va day la cho de sinh loi. Chien thuat chi
+     * cap nhat hieu biet khi NHAN duoc {@code FIRE_RESULT}. Neu server tu
+     * choi phat ban (sai luot, o da ban) thi khong co ket qua nao ve, chien
+     * thuat van tuong o do chua ban va co the chon lai dung o do - lap vo
+     * han. Mang nay chan truong hop do.
      */
-    private final Deque<int[]> oCanThu = new ArrayDeque<>();
+    private final boolean[][] daGui = new boolean[Board.SIZE][Board.SIZE];
 
     /** Van dau da tung bat dau chua - de biet khi nao nen roi phong. */
     private boolean daVaoTran;
 
     public BotClient(String host, int cong, int roomId) {
+        this(host, cong, roomId, MucDoBot.THUONG);
+    }
+
+    public BotClient(String host, int cong, int roomId, MucDoBot mucDo) {
         this.host = host;
         this.cong = cong;
         this.roomId = roomId;
+        this.mucDo = mucDo == null ? MucDoBot.THUONG : mucDo;
+        this.chienThuat = ChienThuatBan.tao(this.mucDo);
 
         // Ten ngau nhien cho moi lan: tranh dung do khi nguoi choi mo nhieu
         // phong co bot cung luc. Mat khau cung ngau nhien va chi ton tai
         // trong bo nho tien trinh - khong ai dang nhap duoc bang tai khoan
         // nay vi khong ai biet mat khau.
+        //
+        // Ten co kem mot chu cho muc do (D/T/K) de nhin nhat ky hay anh chup
+        // la biet ngay van do danh voi muc nao. Phai dung chu viet tat vi
+        // Protocol.NAME_MAX chi cho 16 ky tu.
         demBot++;
-        this.ten = Protocol.BOT_PREFIX + demBot + "_" + chuoiNgauNhien(4);
+        this.ten = Protocol.BOT_PREFIX + this.mucDo.name().charAt(0)
+                + demBot + "_" + chuoiNgauNhien(4);
         this.matKhau = chuoiNgauNhien(16);
     }
 
@@ -117,6 +136,10 @@ public final class BotClient implements Runnable {
 
     public String matKhau() {
         return matKhau;
+    }
+
+    public MucDoBot mucDo() {
+        return mucDo;
     }
 
     /**
@@ -170,7 +193,8 @@ public final class BotClient implements Runnable {
         // chi can dang nhap. Bot KHONG tu gui REGISTER duoc vi server chan
         // moi ten bat dau bang BOT_PREFIX o duong REGISTER cong khai.
         gui(Packet.of(PacketType.LOGIN, ten, matKhau));
-        System.out.println("[BOT " + ten + "] da ket noi, dang dang nhap.");
+        System.out.println("[BOT " + ten + "] da ket noi (muc " + mucDo.ten()
+                + ", thuat toan: " + chienThuat.ten() + "), dang dang nhap.");
     }
 
     private void vongLapDoc() throws IOException, ClassNotFoundException {
@@ -205,8 +229,7 @@ public final class BotClient implements Runnable {
             }
 
             // Ket qua phat ban cua chinh bot - dung de chon o ban tiep theo.
-            case FIRE_RESULT -> ghiNhanKetQua(
-                    p.intArg(0, -1), p.intArg(1, -1), p.arg(2));
+            case FIRE_RESULT -> ghiNhanKetQua(p);
 
             // Doi thu ban vao bot - cap nhat ban do cua minh cho dung.
             case INCOMING -> banDoMinh.fire(p.intArg(0, -1), p.intArg(1, -1));
@@ -261,16 +284,14 @@ public final class BotClient implements Runnable {
     }
 
     private void xoaTrangThaiVan() {
-        for (int x = 0; x < Board.SIZE; x++) {
-            for (int y = 0; y < Board.SIZE; y++) {
-                daBan[x][y] = false;
-            }
+        for (boolean[] cot : daGui) {
+            Arrays.fill(cot, false);
         }
-        oCanThu.clear();
+        chienThuat.batDauVanMoi();
     }
 
     /* ------------------------------------------------------------------ */
-    /* Chon nuoc di - THUAT TOAN SAN VA DIET                               */
+    /* Ban                                                                 */
     /* ------------------------------------------------------------------ */
 
     /**
@@ -287,93 +308,69 @@ public final class BotClient implements Runnable {
             Thread.currentThread().interrupt();
             return;
         }
-        int[] o = chonOBan();
+        int[] o = chonOChuaGui();
         if (o == null) {
             return;
         }
-        daBan[o[0]][o[1]] = true;
+        daGui[o[0]][o[1]] = true;
         gui(Packet.of(PacketType.FIRE, String.valueOf(o[0]), String.valueOf(o[1])));
     }
 
     /**
-     * CHON O DE BAN - hai che do.
+     * Xin chien thuat chon o, va bo qua nhung o da gui phat ban di roi.
      *
-     * <p><b>DIET:</b> neu hang doi {@link #oCanThu} con o, ban vao do truoc.
-     * Day la cac o ke mot o vua ban trung - tau nam lien nhau nen phan con
-     * lai cua no chac chan o mot trong bon huong.
-     *
-     * <p><b>SAN:</b> het o can thu thi ban mo moi, nhung khong ban bua. Chi
-     * ban vao cac o co {@code (x + y)} chan - kieu ban co.
-     *
-     * <p>Vi sao ban kieu ban co: con tau ngan nhat dai 2 o, nen moi con tau
-     * deu chac chan che it nhat mot o thuoc luoi ban co. Chi can quet nua
-     * ban do la tim duoc het tau, thay vi quet ca 100 o. Het o ban co moi
-     * ban sang nhung o con lai.
-     *
-     * @return toa do {x, y}, hoac null neu het o
+     * <p>Thu vai lan vi chien thuat co the chon lai dung o do khi no chua
+     * nhan duoc ket qua. Het luot thu thi ban bat ky o nao chua gui - mien
+     * la van di tiep, khong treo.
      */
-    private int[] chonOBan() {
-        // --- Che do DIET ---
-        while (!oCanThu.isEmpty()) {
-            int[] o = oCanThu.poll();
-            if (hopLe(o[0], o[1])) {
+    private int[] chonOChuaGui() {
+        for (int lan = 0; lan < 5; lan++) {
+            int[] o = chienThuat.chonO(rnd);
+            if (o == null) {
+                break;
+            }
+            if (Board.inBounds(o[0], o[1]) && !daGui[o[0]][o[1]]) {
                 return o;
             }
         }
-
-        // --- Che do SAN ---
-        List<int[]> banCo = new ArrayList<>();
-        List<int[]> conLai = new ArrayList<>();
         for (int x = 0; x < Board.SIZE; x++) {
             for (int y = 0; y < Board.SIZE; y++) {
-                if (!hopLe(x, y)) {
-                    continue;
-                }
-                if ((x + y) % 2 == 0) {
-                    banCo.add(new int[] { x, y });
-                } else {
-                    conLai.add(new int[] { x, y });
+                if (!daGui[x][y]) {
+                    return new int[] { x, y };
                 }
             }
         }
-        List<int[]> nguon = banCo.isEmpty() ? conLai : banCo;
-        if (nguon.isEmpty()) {
-            return null;
-        }
-        Collections.shuffle(nguon, rnd);
-        return nguon.get(0);
-    }
-
-    private boolean hopLe(int x, int y) {
-        return Board.inBounds(x, y) && !daBan[x][y];
+        return null;
     }
 
     /**
-     * Nhan ket qua phat ban cua minh va cap nhat ke hoach.
+     * Chuyen {@code FIRE_RESULT} cho chien thuat.
      *
-     * <p>TRUNG thi day bon o ke vao hang doi de thu tiep. CHIM thi xoa hang
-     * doi: con tau do xong roi, nhung o ke con lai khong con y nghia, giu
-     * lai chi lam bot phi dan.
+     * <p>args: x, y, ten {@link FireResult}, va ma tau neu tau vua chim.
+     * Ma tau la thong tin quan trong voi muc KHO: biet tau nao da chim thi
+     * loai duoc no khoi phep dem cac cach dat.
      */
-    private void ghiNhanKetQua(int x, int y, String ketQua) {
+    private void ghiNhanKetQua(Packet p) {
+        int x = p.intArg(0, -1);
+        int y = p.intArg(1, -1);
         if (!Board.inBounds(x, y)) {
             return;
         }
-        daBan[x][y] = true;
+        daGui[x][y] = true;
 
-        if (FireResult.SUNK.name().equals(ketQua)) {
-            oCanThu.clear();
+        FireResult kq;
+        try {
+            kq = FireResult.valueOf(p.arg(2));
+        } catch (IllegalArgumentException e) {
             return;
         }
-        if (!FireResult.HIT.name().equals(ketQua)) {
-            return;
+
+        ShipType tauChim = null;
+        String ma = p.arg(3);
+        if (kq == FireResult.SUNK && !ma.isEmpty()) {
+            tauChim = ShipType.fromCode(ma.charAt(0));
         }
-        int[][] ke = { { x + 1, y }, { x - 1, y }, { x, y + 1 }, { x, y - 1 } };
-        for (int[] o : ke) {
-            if (hopLe(o[0], o[1])) {
-                oCanThu.add(o);
-            }
-        }
+        chienThuat.ghiKetQua(x, y, kq, tauChim);
     }
 
     /* ------------------------------------------------------------------ */
