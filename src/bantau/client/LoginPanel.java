@@ -75,7 +75,7 @@ public class LoginPanel extends JPanel {
 
         gc.gridx = 0;
         gc.gridy = 3;
-        form.add(new JLabel("Mat khau:"), gc);
+        form.add(new JLabel("Mật khẩu:"), gc);
         gc.gridx = 1;
         form.add(passField, gc);
 
