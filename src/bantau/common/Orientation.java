@@ -3,9 +3,9 @@ package bantau.common;
 /** Huong dat tau tren ban do. */
 public enum Orientation {
 
-    /** Nam ngang - tau keo dai theo truc x (sang phai). */
+    /** Nằm ngang - tau keo dai theo truc x (sang phai). */
     HORIZONTAL('H'),
-    /** Nam doc - tau keo dai theo truc y (xuong duoi). */
+    /** Nằm dọc - tau keo dai theo truc y (xuong duoi). */
     VERTICAL('V');
 
     private final char code;
