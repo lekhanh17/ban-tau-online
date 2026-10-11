@@ -50,7 +50,7 @@ public enum MucDoBot {
         this.moTa = moTa;
     }
 
-    /** Ten ngan de hien tren giao dien. */
+    /** Tên ngắn de hien tren giao dien. */
     public String ten() {
         return ten;
     }
