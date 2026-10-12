@@ -50,7 +50,7 @@ public enum MucDoBot {
         this.moTa = moTa;
     }
 
-    /** Tên ngắn de hien tren giao dien. */
+    /** Tên ngắn để hiện trên giao diện. */
     public String ten() {
         return ten;
     }
