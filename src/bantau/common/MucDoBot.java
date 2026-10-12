@@ -64,7 +64,7 @@ public enum MucDoBot {
      * Doi chuoi tu ban tin {@code ADD_BOT} ve muc do.
      *
      * <p>Chuoi rong hoac khong hop le thi tra ve {@link #THUONG}. Nho vay
-     * mot client ban cu - khong gui tham so muc do - van choi duoc binh
+     * mot client bản cũ - khong gui tham so muc do - van choi duoc binh
      * thuong thay vi bi loi.
      */
     public static MucDoBot tuChuoi(String s) {
