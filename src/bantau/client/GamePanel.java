@@ -86,9 +86,9 @@ public class GamePanel extends JPanel {
      */
     private Board modelCuaMinh = new Board();
     private final Map<ShipType, JToggleButton> nutTau = new EnumMap<>(ShipType.class);
-    private final JToggleButton nutXoay = new JToggleButton("Huong: Nam ngang");
-    private final JButton nutNgauNhien = new JButton("Dat ngau nhien");
-    private final JButton nutSanSang = new JButton("San sang");
+    private final JToggleButton nutXoay = new JToggleButton("Hướng: Nằm ngang");
+    private final JButton nutNgauNhien = new JButton("Đặt ngẫu nhiên");
+    private final JButton nutSanSang = new JButton("Sẵn sàng");
     private ShipType tauDangChon = ShipType.CARRIER;
     private Orientation huongDangChon = Orientation.HORIZONTAL;
     private int hoverX = -1;
@@ -103,7 +103,7 @@ public class GamePanel extends JPanel {
     private int giayConLai;
 
     /** Nut goi doi thu may, nam o the "dang cho". */
-    private final JButton nutGoiMay = new JButton("Choi voi may");
+    private final JButton nutGoiMay = new JButton("Chơi với máy");
 
     /** Chon muc do kho cho doi thu may. */
     private final JComboBox<MucDoBot> chonMucDo =
@@ -158,7 +158,7 @@ public class GamePanel extends JPanel {
         p.add(scroll, BorderLayout.CENTER);
 
         JPanel bottom = new JPanel(new BorderLayout(4, 0));
-        JButton sendButton = new JButton("Gui");
+        JButton sendButton = new JButton("Gửi");
         sendButton.addActionListener(e -> guiChat());
         chatField.addActionListener(e -> guiChat());
         bottom.add(chatField, BorderLayout.CENTER);
@@ -169,7 +169,7 @@ public class GamePanel extends JPanel {
 
     private JPanel buildControls() {
         JPanel p = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 6));
-        JButton leaveButton = new JButton("Roi phong");
+        JButton leaveButton = new JButton("Rời phòng");
         leaveButton.addActionListener(e -> app.doLeaveRoom());
         p.add(leaveButton);
         return p;
@@ -178,8 +178,8 @@ public class GamePanel extends JPanel {
     /** Hai ban co dat canh nhau: ben trai cua minh, ben phai cua doi thu. */
     private JPanel buildBoardsRow() {
         JPanel row = new JPanel(new java.awt.GridLayout(1, 2, 12, 0));
-        row.add(boardSlot("Ban co cua ban", boardCuaMinh));
-        row.add(boardSlot("Ban co doi thu", boardDoiThu));
+        row.add(boardSlot("Bàn cờ của bạn", boardCuaMinh));
+        row.add(boardSlot("Bàn cờ của đối thủ", boardDoiThu));
         return row;
     }
 
@@ -202,7 +202,7 @@ public class GamePanel extends JPanel {
      */
     private JPanel buildTheCho() {
         JLabel nhan = new JLabel(
-                "Dang cho du hai nguoi choi vao phong...", SwingConstants.CENTER);
+                "Đang chờ đối thủ vào phòng...", SwingConstants.CENTER);
         nhan.setFont(new Font("SansSerif", Font.PLAIN, 13));
 
         chonMucDo.setSelectedItem(MucDoBot.THUONG);
@@ -211,7 +211,7 @@ public class GamePanel extends JPanel {
 
         nutGoiMay.setPreferredSize(new java.awt.Dimension(190, 32));
         nutGoiMay.setToolTipText(
-                "Khong doi nguoi nua, goi mot doi thu may vao choi ngay");
+                "Không đợi đối thủ nữa, gọi máy vào chơi ngay");
         nutGoiMay.addActionListener(e -> goiDoiThuMay());
 
         JPanel p = new JPanel();
@@ -219,7 +219,7 @@ public class GamePanel extends JPanel {
         nhan.setAlignmentX(CENTER_ALIGNMENT);
 
         JPanel hangNut = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        hangNut.add(new JLabel("Muc do:"));
+        hangNut.add(new JLabel("Mức độ:"));
         hangNut.add(chonMucDo);
         hangNut.add(nutGoiMay);
         hangNut.setAlignmentX(CENTER_ALIGNMENT);
@@ -245,16 +245,16 @@ public class GamePanel extends JPanel {
         MucDoBot m = mucDoDangChon();
         nutGoiMay.setEnabled(false);
         chonMucDo.setEnabled(false);
-        nutGoiMay.setText("Dang goi doi thu may...");
+        nutGoiMay.setText("Đang gọi đối thủ máy...");
         app.send(Packet.of(PacketType.ADD_BOT, m.name()));
-        log("Da goi mot doi thu may muc " + m.ten() + " vao phong.");
+        log("Đã gọi một đối thủ máy mức " + m.ten() + " vào phòng.");
     }
 
     /** Mo lai nut khi quay ve trang thai cho - vi du bot vua thoat. */
     private void moLaiNutGoiMay() {
         nutGoiMay.setEnabled(true);
         chonMucDo.setEnabled(true);
-        nutGoiMay.setText("Choi voi may");
+        nutGoiMay.setText("Chơi với máy");
     }
 
     private JPanel buildTheDatTau() {
@@ -282,8 +282,8 @@ public class GamePanel extends JPanel {
         hangNut.add(nutSanSang);
 
         JLabel huongDan = new JLabel(
-                "Chon tau, ruoc chuot vao ban co ben trai de xem truoc (xanh = hop le,"
-                        + " do = khong), roi bam chuot de dat.");
+                "Chọn tàu, rê chuột vào bàn cờ bên trái để xem trước (xanh = hợp lệ,"
+                        + " đỏ = không hợp lệ), click chuột trái để đặt.");
         huongDan.setFont(new Font("SansSerif", Font.ITALIC, 12));
 
         p.add(hangTau);
@@ -300,7 +300,7 @@ public class GamePanel extends JPanel {
         dongHoLabel.setAlignmentX(CENTER_ALIGNMENT);
 
         JLabel nhan = new JLabel(
-                "Den luot ban thi bam vao ban co doi thu (ben phai) de ban.",
+                "Đến lượt bạn thì bấm vào bàn cờ của đối thủ (bên phải) để bắn.",
                 SwingConstants.CENTER);
         nhan.setFont(new Font("SansSerif", Font.PLAIN, 13));
         nhan.setAlignmentX(CENTER_ALIGNMENT);
@@ -349,12 +349,12 @@ public class GamePanel extends JPanel {
 
     private void veDongHo() {
         if (giayConLai <= 0) {
-            dongHoLabel.setText("Het gio!");
+            dongHoLabel.setText("Hết giờ!");
             dongHoLabel.setForeground(new java.awt.Color(0xC0392B));
             return;
         }
-        dongHoLabel.setText((luotCuaMinh ? "Luot cua ban: " : "Doi thu con: ")
-                + giayConLai + " giay");
+        dongHoLabel.setText((luotCuaMinh ? "Lượt của bạn: " : "Đối thủ còn: ")
+                + giayConLai + " giây");
         // Duoi 10 giay thi chuyen do cho de thay.
         dongHoLabel.setForeground(giayConLai <= 10
                 ? new java.awt.Color(0xC0392B)
@@ -385,7 +385,7 @@ public class GamePanel extends JPanel {
     /* ------------------------------------------------------------------ */
 
     private String nhanNut(ShipType t, boolean daDat) {
-        return t.label() + " (" + t.size() + " o)" + (daDat ? " - da dat" : "");
+        return t.label() + " (" + t.size() + " o)" + (daDat ? " - đã đặt" : "");
     }
 
     private void chonTau(ShipType t) {
@@ -396,7 +396,7 @@ public class GamePanel extends JPanel {
     private void xoayHuong() {
         huongDangChon = huongDangChon.flip();
         nutXoay.setText("Huong: "
-                + (huongDangChon == Orientation.HORIZONTAL ? "Nam ngang" : "Nam doc"));
+                + (huongDangChon == Orientation.HORIZONTAL ? "Nằm ngang" : "Nằm dọc"));
         capNhatXemTruoc();
     }
 
@@ -452,7 +452,7 @@ public class GamePanel extends JPanel {
         }
         app.send(Packet.withPayload(PacketType.READY, modelCuaMinh));
         setDatTauChoPhep(false);
-        setStatus("Da gui so do, dang cho server xac nhan...");
+        setStatus("Đã gửi sơ đồ, đang chờ server nhập lệnh...");
     }
 
     private void setDatTauChoPhep(boolean choPhep) {
@@ -468,9 +468,9 @@ public class GamePanel extends JPanel {
     /** Server tu choi so do (E_BAD_PLACEMENT) - mo lai giao dien dat tau. */
     public void datTauBiTuChoi(String moTa) {
         setDatTauChoPhep(true);
-        setStatus("So do bi tu choi: " + moTa);
+        setStatus("Sơ đồ bị từ chối: " + moTa);
         JOptionPane.showMessageDialog(this, moTa,
-                "So do khong hop le", JOptionPane.WARNING_MESSAGE);
+                "Sơ đồ không hợp lệ", JOptionPane.WARNING_MESSAGE);
     }
 
     /* ------------------------------------------------------------------ */
@@ -512,11 +512,11 @@ public class GamePanel extends JPanel {
 
     public void enterRoom(RoomInfo info, boolean laChuPhong) {
         tenPhong = (info == null ? "?" : "#" + info.id() + " - " + info.name())
-                + (laChuPhong ? "  (ban la chu phong)" : "");
+                + (laChuPhong ? "  (bạn là chủ phòng)" : "");
         doiThu = "-";
         capNhatTieuDe();
         logArea.setText("");
-        log("Da vao phong.");
+        log("Đã vào phòng");
 
         moLaiNutGoiMay();
         dieuKhienCards.show(dieuKhienPanel, THE_CHO);
@@ -532,7 +532,7 @@ public class GamePanel extends JPanel {
             doiThu = "-";
         }
         capNhatTieuDe();
-        statusLabel.setText("Trang thai: " + (info == null ? "?" : info.state().moTa()));
+        statusLabel.setText("Trạng thái: " + (info == null ? "?" : info.state().moTa()));
 
         // Phong quay ve WAITING giua chung nghia la doi thu vua roi di.
         // Phai dua giao dien ve trang thai cho, neu khong nguoi con lai se
@@ -557,7 +557,7 @@ public class GamePanel extends JPanel {
     }
 
     private void capNhatTieuDe() {
-        roomLabel.setText("Phong " + tenPhong + "   |   Doi thu: " + doiThu);
+        roomLabel.setText("Phòng " + tenPhong + "   |   Đối thủ: " + doiThu);
     }
 
     /** PLACE_PHASE: du hai nguoi, bat dau (hoac choi lai) giai doan dat tau. */
@@ -573,7 +573,7 @@ public class GamePanel extends JPanel {
         hoverY = -1;
         tauDangChon = ShipType.CARRIER;
         huongDangChon = Orientation.HORIZONTAL;
-        nutXoay.setText("Huong: Nam ngang");
+        nutXoay.setText("Hướng: Nằm ngang");
         for (ShipType t : ShipType.values()) {
             nutTau.get(t).setText(nhanNut(t, false));
         }
@@ -581,21 +581,21 @@ public class GamePanel extends JPanel {
         setDatTauChoPhep(true);
 
         dieuKhienCards.show(dieuKhienPanel, THE_DAT_TAU);
-        setStatus("Hay dat du 5 tau roi bam \"San sang\".");
-        log("Bat dau giai doan dat tau.");
+        setStatus("Hãy đặt đủ 5 tàu rồi bấm \"Sẵn sàng\".");
+        log("Bắt đầu giai đoạn đặt tàu.");
     }
 
     /** READY_OK: so do cua minh hop le, dang cho doi thu dat xong. */
     public void batDaSanSang() {
-        setStatus("So do hop le. Dang cho doi thu dat tau xong...");
-        log("So do da duoc chap nhan.");
+        setStatus("Sơ đồ hợp lệ. Đang chờ đối thủ đặt tàu xong...");
+        log("Sơ đồ đã được chấp nhận.");
     }
 
     /** GAME_START: ca hai da san sang, van dau bat dau. */
     public void batDauVanDau(String nguoiDiTruoc) {
         dieuKhienCards.show(dieuKhienPanel, THE_TRAN_DAU);
         boardCuaMinh.setChoPhepClick(false);
-        log("Van dau bat dau. Nguoi di truoc: " + nguoiDiTruoc);
+        log("Ván đấu bắt đầu. Người đi trước: " + nguoiDiTruoc);
     }
 
     /** TURN: server bao den luot ai. */
@@ -603,8 +603,8 @@ public class GamePanel extends JPanel {
         luotCuaMinh = app.getUsername().equals(tenNguoiDangDanh);
         boardDoiThu.setChoPhepClick(luotCuaMinh);
         setStatus(luotCuaMinh
-                ? "Den luot ban - bam vao ban co doi thu de ban."
-                : "Doi thu (" + tenNguoiDangDanh + ") dang danh...");
+                ? "Đến lượt bạn - bấm vào bàn cờ đối thủ để bắn."
+                : "Đối thủ (" + tenNguoiDangDanh + ") đang bắn...");
         batDauDemNguoc(giaySuyNghi);
     }
 
@@ -613,9 +613,9 @@ public class GamePanel extends JPanel {
         boardDoiThu.danhDauO(x, y, doiMark(ketQua));
         String toa = tenO(x, y);
         if (FireResult.SUNK.name().equals(ketQua)) {
-            log("Ban " + toa + ": CHIM tau " + tenTau(maTau) + " cua doi thu!");
+            log("Bắn " + toa + ": chìm tàu " + tenTau(maTau) + " của đối thủ!");
         } else {
-            log("Ban " + toa + ": " + FireResult.valueOf(ketQua).moTa());
+            log("Bắn " + toa + ": " + FireResult.valueOf(ketQua).moTa());
         }
     }
 
@@ -625,9 +625,9 @@ public class GamePanel extends JPanel {
         boardCuaMinh.napTuBanDo(modelCuaMinh);
         String toa = tenO(x, y);
         if (FireResult.SUNK.name().equals(ketQua)) {
-            log("Doi thu ban " + toa + ": CHIM tau " + tenTau(maTau) + " cua minh!");
+            log("Đối thủ bắn " + toa + ": chìm tàu " + tenTau(maTau) + " của bạn!");
         } else {
-            log("Doi thu ban " + toa + ": " + FireResult.valueOf(ketQua).moTa());
+            log("Đối thủ bắn " + toa + ": " + FireResult.valueOf(ketQua).moTa());
         }
     }
 
@@ -646,9 +646,9 @@ public class GamePanel extends JPanel {
         luotCuaMinh = false;
         boardDoiThu.setChoPhepClick(false);
 
-        log(tenDoiThu + " mat ket noi. Van dau tam dung, cho ho vao lai trong "
-                + giayAnHan + " giay.");
-        setStatus("Tam dung - cho " + tenDoiThu + " vao lai...");
+        log(tenDoiThu + " mất kết nối. Ván đấu tạm dừng, chờ họ vào lại trong "
+                + giayAnHan + " giây.");
+        setStatus("Tạm dừng - chờ " + tenDoiThu + " vào lại...");
         batDauDemAnHan(tenDoiThu, giayAnHan);
     }
 
@@ -677,15 +677,15 @@ public class GamePanel extends JPanel {
     private void veDongHoAnHan(String tenDoiThu) {
         dongHoLabel.setForeground(new java.awt.Color(0xB9770E));
         dongHoLabel.setText(giayConLai > 0
-                ? "Cho " + tenDoiThu + " vao lai: " + giayConLai + " giay"
-                : "Het thoi gian cho");
+                ? "Chờ " + tenDoiThu + " vào lại: " + giayConLai + " giây"
+                : "Hết thời gian chờ");
     }
 
     /** OPPONENT_BACK: doi thu vao lai duoc. Server se gui TURN ngay sau. */
     public void doiThuVaoLai(String tenDoiThu) {
         dungDongHo();
-        log(tenDoiThu + " da vao lai. Van dau tiep tuc.");
-        setStatus("Van dau tiep tuc.");
+        log(tenDoiThu + " đã vào lại. Ván đấu tiếp tục.");
+        setStatus("Ván đấu tiếp tục.");
     }
 
     /**
@@ -704,7 +704,7 @@ public class GamePanel extends JPanel {
     public void vaoLaiVan(Board cuaMinh, String maDoiThu, String tenDoiThu,
             String tenDangDanh, int giayConLai) {
         if (cuaMinh == null) {
-            log("Server gui ban do rong, khong khoi phuc duoc.");
+            log("Server gửi bản đồ rỗng, không thể khôi phục.");
             return;
         }
         modelCuaMinh = cuaMinh;
@@ -718,7 +718,7 @@ public class GamePanel extends JPanel {
 
         // Bo qua giai doan dat tau, vao thang man hinh tran dau.
         dieuKhienCards.show(dieuKhienPanel, THE_TRAN_DAU);
-        log("Da khoi phuc van dau dang do. Tau con lai: "
+        log("Đã khôi phục ván đấu đang diễn ra. Tàu còn lại: "
                 + modelCuaMinh.remainingShips() + "/5.");
 
         capNhatLuot(tenDangDanh, giayConLai);
@@ -765,31 +765,31 @@ public class GamePanel extends JPanel {
         // Doi thu rot mang va khong vao lai kip: phong duoc giu lai o trang
         // thai cho nguoi choi moi, nen chi thong bao roi o lai, khong ve lobby.
         if (doiThuRotMang) {
-            String tb = "BAN THANG! (doi thu mat ket noi va khong vao lai duoc)";
+            String tb = "BẠN THẮNG! (đối thủ mất kết nối và không vào lại được)";
             log(tb);
             setStatus(tb);
             JOptionPane.showMessageDialog(this,
-                    tb + "\nPhong van con, ban co the cho nguoi choi moi.",
-                    "Ket thuc van dau", JOptionPane.INFORMATION_MESSAGE);
+                    tb + "\nPhòng ván còn, bạn có thể cho người chơi mới.",
+                    "Kết thúc ván đấu", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
 
         String moTaLyDo;
         if (doiThuBoDi) {
-            moTaLyDo = "doi thu da roi phong";
+            moTaLyDo = "đối thủ đã rời phòng";
         } else {
-            moTaLyDo = thang ? "ban da ban chim het tau doi thu"
-                    : "tau cua ban da bi chim het";
+            moTaLyDo = thang ? "bạn đã bắn chìm hết tàu đối thủ"
+                    : "tàu của bạn đã bị bắn chìm hết";
         }
-        String thongBao = (thang ? "BAN THANG! " : "BAN THUA! ") + "(" + moTaLyDo + ")";
+        String thongBao = (thang ? "BẠN THẮNG! " : "BẠN THUA! ") + "(" + moTaLyDo + ")";
         log(thongBao);
         setStatus(thongBao);
 
         // Doi thu bo di thi khong con ai de choi lai, chi ve lobby duoc.
         if (doiThuBoDi) {
             JOptionPane.showMessageDialog(this,
-                    thongBao + "\nBan se quay ve danh sach phong.",
-                    "Ket thuc van dau", JOptionPane.INFORMATION_MESSAGE);
+                    thongBao + "\nBạn sẽ quay về danh sách phòng.",
+                    "Kết thúc ván đấu", JOptionPane.INFORMATION_MESSAGE);
             app.doLeaveRoom();
             return;
         }
@@ -806,16 +806,16 @@ public class GamePanel extends JPanel {
      */
     private void hoiChoiLai(String thongBao) {
         int chon = JOptionPane.showOptionDialog(this,
-                thongBao + "\n\nBan muon lam gi tiep?",
-                "Ket thuc van dau",
+                thongBao + "\n\nBạn muốn làm gì tiếp?",
+                "Kết thúc ván đấu",
                 JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null,
-                new String[] { "Choi lai mot van", "Ve danh sach phong" },
-                "Choi lai mot van");
+                new String[] { "Chơi lại", "Về danh sách phòng" },
+                "Chơi lại");
 
         if (chon == JOptionPane.NO_OPTION) {
             app.doLeaveRoom();
         } else {
-            log("Ban chon choi lai. Hay dat tau cho van moi.");
+            log("Bạn đã chọn chơi lại. Hãy đặt tàu mới và bấm \"Sẵn sàng\".");
         }
     }
 

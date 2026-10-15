@@ -7,11 +7,11 @@ package bantau.common;
  */
 public enum ShipType {
 
-    CARRIER("Tau san bay", 5, 'C'),
-    BATTLESHIP("Thiet giap ham", 4, 'B'),
-    CRUISER("Tuan duong ham", 3, 'R'),
-    SUBMARINE("Tau ngam", 3, 'S'),
-    DESTROYER("Tau khu truc", 2, 'D');
+    CARRIER("Tàu sân bay", 5, 'C'),
+    BATTLESHIP("Thiết giáp hạm", 4, 'B'),
+    CRUISER("Tuần dương hạm", 3, 'R'),
+    SUBMARINE("Tàu ngầm", 3, 'S'),
+    DESTROYER("Tàu khu trục", 2, 'D');
 
     private final String label;
     private final int size;

@@ -46,7 +46,7 @@ public class RoomManager {
         int id = idGen.getAndIncrement();
         Room room = new Room(id, name, this);
         rooms.put(id, room);
-        System.out.println("Tao phong #" + id + " \"" + name + "\"");
+        System.out.println("Tạo phòng #" + id + " \"" + name + "\"");
         return room;
     }
 
@@ -56,7 +56,7 @@ public class RoomManager {
 
     public void removeRoom(Room room) {
         rooms.remove(room.getId());
-        System.out.println("Xoa phong #" + room.getId() + " (khong con nguoi choi)");
+        System.out.println("Xóa phòng #" + room.getId() + " (không còn người chơi)");
     }
 
     public int roomCount() {

@@ -112,7 +112,7 @@ public final class BaoMat {
             return ctx;
 
         } catch (GeneralSecurityException e) {
-            throw new IOException("Khong doc duoc kho khoa " + KEYSTORE
+            throw new IOException("Không đọc được kho khóa " + KEYSTORE
                     + ": " + e.getMessage(), e);
         }
     }
@@ -127,7 +127,7 @@ public final class BaoMat {
 
     /** Ten che do de in ra man hinh cho de theo doi. */
     public static String moTaCheDo() {
-        return dungSsl ? "CO MA HOA (TLS)" : "KHONG MA HOA";
+        return dungSsl ? "CÓ MÃ HOÁ (TLS)" : "KHÔNG MÃ HOÁ";
     }
 
     /* ------------------------------------------------------------------ */
@@ -190,6 +190,6 @@ public final class BaoMat {
             return ssl.getSession().getProtocol() + " / "
                     + ssl.getSession().getCipherSuite();
         }
-        return "TCP thuong, khong ma hoa";
+        return "TCP thường, không mã hóa";
     }
 }

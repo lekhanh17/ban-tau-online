@@ -149,41 +149,41 @@ public class Board implements Serializable {
      * @return null neu hop le, nguoc lai la mo ta loi
      */
     public String kiemTraHopLe() {
-        // 1. Du 5 tau chua
+        // 1. Đủ 5 tàu chưa
         if (origins.size() != ShipType.values().length) {
-            return "Thieu tau: moi dat " + origins.size() + "/"
-                    + ShipType.values().length + " tau";
+            return "Thiếu tàu: mời đặt " + origins.size() + "/"
+                    + ShipType.values().length + " tàu";
         }
 
         // 2. Chua duoc ban phat nao (client khong duoc gui ban do da danh do)
         for (int x = 0; x < SIZE; x++) {
             for (int y = 0; y < SIZE; y++) {
                 if (shot[x][y]) {
-                    return "Ban do da co vet ban, khong phai ban do moi";
+                    return "Bản đồ đã có vết bắn, không phải bản đồ mới";
                 }
             }
         }
         for (Integer h : hits.values()) {
             if (h != null && h != 0) {
-                return "Ban do da co tau bi trung, khong phai ban do moi";
+                return "Bản đồ đã có tàu bị trúng, không phải bản đồ mới";
             }
         }
 
-        // 3. Tung tau: vi tri hop le, so o dung, khop voi luoi
+        // 3. Từng tàu: vị trí hợp lệ, số ô đúng, khớp với lưới
         int tongO = 0;
         for (ShipType type : ShipType.values()) {
             int[] o = origins.get(type);
             if (o == null || o.length != 3) {
-                return "Tau " + type.label() + " thieu thong tin vi tri";
+                return "Tàu " + type.label() + " thiếu thông tin vị trí";
             }
             Orientation huong = Orientation.fromCode((char) o[2]);
 
             for (int[] c : cellsOf(type, o[0], o[1], huong)) {
                 if (!inBounds(c[0], c[1])) {
-                    return "Tau " + type.label() + " tran ra ngoai ban do";
+                    return "Tàu " + type.label() + " tràn ra ngoài bản đồ: ô (" + c[0] + "," + c[1] + ")";
                 }
                 if (grid[c[0]][c[1]] != type) {
-                    return "Tau " + type.label() + " khong khop voi luoi o vi tri ("
+                    return "Tàu " + type.label() + " không khớp với lưới ở vị trí ("
                             + c[0] + "," + c[1] + ")";
                 }
             }
@@ -202,8 +202,8 @@ public class Board implements Serializable {
             }
         }
         if (oThucTe != tongO) {
-            return "Cac tau chong len nhau: dem duoc " + oThucTe
-                    + " o, dang le phai co " + tongO + " o";
+            return "Các tàu chồng lên nhau: đếm được " + oThucTe
+                    + " ô, đang lẽ phải có " + tongO + " ô";
         }
 
         return null;
@@ -343,8 +343,8 @@ public class Board implements Serializable {
 
     /** Chu giai cho ban do ky tu. */
     public static String chuGiai() {
-        return ".  o chua ban    o  ban truot    X  trung    #  tau da chim\n"
-                + "C  Tau san bay  B  Thiet giap ham  R  Tuan duong ham  "
-                + "S  Tau ngam  D  Tau khu truc";
+        return ".  ô chưa bắn    ô  bắn trượt    X  trúng    #  tàu đã chìm\n"
+                + "C  Tàu sân bay  B  Thiết giáp hạm  R  Tuần dương hạm  "
+                + "S  Tàu ngầm  D  Tàu khu trục";
     }
 }

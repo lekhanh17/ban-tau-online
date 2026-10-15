@@ -184,8 +184,8 @@ public class Room {
         // khong con ai, huy luon viec cho va bo phong. Van dau khong duoc
         // ghi vao CSDL vi ca hai ben deu khong con o day.
         if (tenChoVaoLai != null) {
-            System.out.println("Phong #" + id + ": huy cho " + tenChoVaoLai
-                    + " vao lai, nguoi con lai da roi phong.");
+            System.out.println("Phòng #" + id + ": hủy cho " + tenChoVaoLai
+                    + " vào lại, người còn lại đã rời phòng.");
             tenChoVaoLai = null;
         }
 
@@ -194,7 +194,7 @@ public class Room {
             p2 = null;
             state = RoomState.WAITING;
             conLai.send(Packet.of(PacketType.SYSTEM,
-                    c.getUsername() + " da roi phong. Ban tro thanh chu phong."));
+                    c.getUsername() + " đã rời phòng. Bạn trở thành chủ phòng."));
             guiTrangThai();
         } else {
             manager.removeRoom(this);
@@ -262,9 +262,9 @@ public class Room {
         guiTrangThai();
         manager.broadcastRoomList();
 
-        System.out.println("Phong #" + id + ": " + tenChoVaoLai
-                + " mat ket noi giua van. Tam dung, cho vao lai trong "
-                + Protocol.RECONNECT_SECONDS + " giay.");
+        System.out.println("Phòng #" + id + ": " + tenChoVaoLai
+                + " mất kết nối giữa ván. Tạm dừng, cho vào lại trong "
+                + Protocol.RECONNECT_SECONDS + " giây.");
     }
 
     /**
@@ -352,13 +352,13 @@ public class Room {
         game.tiepTuc();
         manager.broadcastRoomList();
 
-        System.out.println("Phong #" + id + ": " + ten
-                + " da vao lai van dang do.");
+        System.out.println("Phòng #" + id + ": " + ten
+                + " đã vào lại ván đang diễn ra.");
         return null;
     }
 
     /**
-     * HET THOI GIAN AN HAN CHUA - thread canh gac goi moi giay.
+     * HẾT THỜI GIAN AN HAN CHƯA - thread canh gac goi moi giay.
      *
      * <p>Qua {@link Protocol#RECONNECT_SECONDS} giay ma nguoi rot mang khong
      * vao lai thi nguoi con lai duoc xu thang, tran dau duoc ghi vao CSDL,
@@ -377,8 +377,8 @@ public class Room {
         String ten = tenChoVaoLai;
         tenChoVaoLai = null;
 
-        System.out.println("Phong #" + id + ": " + ten + " khong vao lai trong "
-                + Protocol.RECONNECT_SECONDS + " giay, xu thua.");
+        System.out.println("Phòng #" + id + ": " + ten + " không vào lại trong "
+                + Protocol.RECONNECT_SECONDS + " giây, xử thua.");
 
         if (game != null) {
             game.ketThucViKhongVaoLai(conLai);
@@ -392,14 +392,14 @@ public class Room {
             p2 = null;
             state = RoomState.WAITING;
             conLai.send(Packet.of(PacketType.SYSTEM,
-                    ten + " khong vao lai duoc. Ban duoc xu thang."));
+                    ten + " không vào lại được. Bạn được xử thắng."));
             guiTrangThai();
         }
         manager.broadcastRoomList();
     }
 
     /* ------------------------------------------------------------------ */
-    /* Trong van dau                                                      */
+    /* Trong ván đấu                                                    */
     /* ------------------------------------------------------------------ */
 
     /**
@@ -423,13 +423,13 @@ public class Room {
 
         String loi = board.kiemTraHopLe();
         if (loi != null) {
-            System.out.println("Tu choi so do cua " + c.getUsername() + ": " + loi);
+            System.out.println("Từ chối sơ đồ của " + c.getUsername() + ": " + loi);
             return Protocol.E_BAD_PLACEMENT;
         }
 
         boolean caHaiSanSang = game.setBoard(c, board);
         c.send(Packet.of(PacketType.READY_OK));
-        c.send(Packet.of(PacketType.SYSTEM, "So do hop le. Dang cho doi thu..."));
+        c.send(Packet.of(PacketType.SYSTEM, "Sơ đồ hợp lệ. Đang chờ đối thủ..."));
 
         if (caHaiSanSang) {
             state = RoomState.PLAYING;

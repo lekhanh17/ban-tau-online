@@ -135,8 +135,8 @@ public class GameSession {
         ClientHandler heHan = turn;
         turn = doiThuCua(heHan);
 
-        String tb = heHan.getUsername() + " het " + Protocol.TURN_SECONDS
-                + " giay suy nghi, mat luot.";
+        String tb = heHan.getUsername() + " hết " + Protocol.TURN_SECONDS
+                + " giây suy nghĩ, mất lượt.";
         playerA.send(Packet.of(PacketType.SYSTEM, tb));
         playerB.send(Packet.of(PacketType.SYSTEM, tb));
         System.out.println(tb);
@@ -198,8 +198,8 @@ public class GameSession {
                     Protocol.RESULT_WIN, Protocol.REASON_ALL_SUNK));
             target.send(Packet.of(PacketType.GAME_OVER,
                     Protocol.RESULT_LOSE, Protocol.REASON_ALL_SUNK));
-            System.out.println("Van dau ket thuc: " + shooter.getUsername()
-                    + " thang " + target.getUsername());
+            System.out.println("Ván đấu kết thúc: " + shooter.getUsername()
+                    + " thắng " + target.getUsername());
             ghiKetQua(shooter.getUsername(), Protocol.REASON_ALL_SUNK);
             return null;
         }
@@ -397,7 +397,7 @@ public class GameSession {
         // ca ngay. Tai khoan bot cung la tai khoan dung mot lan roi bo, de
         // lai thi bang xep hang day ten rac.
         if (laBot(tenA) || laBot(tenB)) {
-            System.out.println("Tran voi doi thu may, khong ghi vao thanh tich.");
+            System.out.println("Trận đấu với máy, không lưu vào thành tích.");
             return;
         }
 

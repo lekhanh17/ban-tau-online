@@ -69,7 +69,7 @@ public class ServerConnection {
     }
 
     private void readLoop() {
-        String lyDo = "Server dong ket noi";
+        String lyDo = "Server đóng kết nối";
         try {
             while (running) {
                 Object obj = in.readObject();
@@ -79,9 +79,9 @@ public class ServerConnection {
                 }
             }
         } catch (EOFException e) {
-            lyDo = "Server da dong ket noi";
+            lyDo = "Server đã đóng kết nối";
         } catch (IOException | ClassNotFoundException e) {
-            lyDo = "Mat ket noi: " + e.getMessage();
+            lyDo = "Mất kết nối: " + e.getMessage();
         } finally {
             if (running) {
                 running = false;
@@ -102,7 +102,7 @@ public class ServerConnection {
             out.reset();
         } catch (IOException e) {
             running = false;
-            final String r = "Khong gui duoc: " + e.getMessage();
+            final String r = "Không gửi được: " + e.getMessage();
             SwingUtilities.invokeLater(() -> listener.onDisconnected(r));
         }
     }
@@ -114,7 +114,6 @@ public class ServerConnection {
                 socket.close();
             }
         } catch (IOException ignored) {
-            // khong con gi de lam
         }
     }
 }

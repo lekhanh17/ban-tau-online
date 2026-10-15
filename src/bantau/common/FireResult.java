@@ -4,13 +4,13 @@ package bantau.common;
 public enum FireResult {
 
     /** Ban truot, o do khong co tau. */
-    MISS("TRUOT"),
+    MISS("TRƯỢT"),
     /** Ban trung mot o cua tau, tau chua chim. */
-    HIT("TRUNG"),
+    HIT("TRÚNG"),
     /** Ban trung o cuoi cung, tau chim. */
-    SUNK("CHIM"),
+    SUNK("CHÌM"),
     /** O nay da ban roi, hoac toa do ngoai ban do - khong hop le. */
-    ALREADY("DA BAN ROI");
+    ALREADY("ĐÃ BẮN RỒI");
 
     private final String moTa;
 

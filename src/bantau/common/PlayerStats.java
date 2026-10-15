@@ -45,7 +45,7 @@ public final class PlayerStats implements Serializable {
 
     @Override
     public String toString() {
-        return String.format("%-16s %3d thang / %3d thua (%.0f%%)",
+        return String.format("%-16s %3d thắng / %3d thua (%.0f%%)",
                 username, wins, losses, tyLeThang());
     }
 }

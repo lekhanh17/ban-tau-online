@@ -26,10 +26,10 @@ public enum RoomState {
     /** Mo ta bang tieng Viet de hien thi cho nguoi choi. */
     public String moTa() {
         return switch (this) {
-            case WAITING -> "Dang cho nguoi choi";
-            case PLACING -> "Dang dat tau";
-            case PLAYING -> "Dang danh";
-            case PAUSED -> "Tam dung - cho doi thu vao lai";
+            case WAITING -> "Đang chờ người chơi";
+            case PLACING -> "Đang đặt tàu";
+            case PLAYING -> "Đang chơi";
+            case PAUSED -> "Tạm dừng - chờ đối thủ vào lại";
         };
     }
 }

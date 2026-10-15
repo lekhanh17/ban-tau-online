@@ -83,7 +83,7 @@ public final class Protocol {
      * cho de doi xu khac di - cu the la khong ghi tran dau voi may vao thanh
      * tich.
      */
-    public static final String BOT_PREFIX = "May_";
+    public static final String BOT_PREFIX = "Máy_";
 
     /**
      * Bot cho bao nhieu mili giay truoc moi phat ban.

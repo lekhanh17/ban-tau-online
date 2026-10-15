@@ -93,9 +93,9 @@ public final class MatchRecord implements Serializable {
         return startedAt == null ? "-" : startedAt.format(FMT);
     }
 
-    /** Mo ta ly do ket thuc bang tieng Viet khong dau. */
+    /** Mo ta ly do ket thuc. */
     public String moTaLyDo() {
         return Protocol.REASON_OPPONENT_LEFT.equals(reason)
-                ? "doi thu roi phong" : "ban chim het tau";
+                ? "đối thủ rời phòng" : "bắn chìm hết tàu";
     }
 }

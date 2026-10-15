@@ -65,7 +65,7 @@ public final class ThongKeDialog {
     /** Hien bang xep hang: hang, ten, thang, thua, tong tran, ty le thang. */
     public static void hienBangXepHang(Component cha, List<PlayerStats> ds) {
         DefaultTableModel model = new DefaultTableModel(
-                new Object[] { "Hang", "Nguoi choi", "Thang", "Thua", "Tong tran", "Ty le thang" }, 0);
+                new Object[] { "Hạng", "Người chơi", "Thắng", "Thua", "Tổng trận", "Tỷ lệ thắng" }, 0);
 
         if (ds != null) {
             int hang = 1;
@@ -88,18 +88,18 @@ public final class ThongKeDialog {
         bang.getColumnModel().getColumn(4).setMaxWidth(80);
 
         String ghiChu = model.getRowCount() == 0
-                ? "Chua co ai danh tran nao."
-                : "Sap theo so tran thang giam dan.";
+                ? "Chưa có ai đánh trận nào."
+                : "Sắp theo số trận thắng giảm dần.";
 
         JOptionPane.showMessageDialog(cha,
-                khung("BANG XEP HANG", bang, ghiChu, 560),
-                "Bang xep hang", JOptionPane.PLAIN_MESSAGE);
+                khung("BẢNG XẾP HẠNG", bang, ghiChu, 560),
+                "Bảng xếp hạng", JOptionPane.PLAIN_MESSAGE);
     }
 
     /** Hien lich su dau cua chinh nguoi dang dang nhap. */
     public static void hienLichSu(Component cha, String toi, List<MatchRecord> ds) {
         DefaultTableModel model = new DefaultTableModel(
-                new Object[] { "Thoi gian", "Doi thu", "Ket qua", "Ly do", "Luot ban", "Thoi luong" }, 0);
+                new Object[] { "Thời gian", "Đối thủ", "Kết quả", "Lý do", "Lượt bắn", "Thời lượng" }, 0);
 
         int thang = 0;
         if (ds != null) {
@@ -111,10 +111,10 @@ public final class ThongKeDialog {
                 model.addRow(new Object[] {
                         m.thoiGianBatDau(),
                         m.doiThuCua(toi),
-                        win ? "THANG" : "THUA",
+                        win ? "THẮNG" : "THUA",
                         m.moTaLyDo(),
                         m.shots(),
-                        m.soPhut() + " phut"
+                        m.soPhut() + " phút"
                 });
             }
         }
@@ -128,11 +128,11 @@ public final class ThongKeDialog {
 
         int tong = model.getRowCount();
         String ghiChu = tong == 0
-                ? "Ban chua danh tran nao."
-                : tong + " tran gan nhat: thang " + thang + ", thua " + (tong - thang);
+                ? "Bạn chưa đánh trận nào."
+                : tong + " trận gần nhất: thắng " + thang + ", thua " + (tong - thang);
 
         JOptionPane.showMessageDialog(cha,
-                khung("LICH SU DAU CUA " + toi.toUpperCase(), bang, ghiChu, 660),
-                "Lich su dau", JOptionPane.PLAIN_MESSAGE);
+                khung("LỊCH SỬ ĐẤU CỦA " + toi.toUpperCase(), bang, ghiChu, 660),
+                "Lịch sử đấu", JOptionPane.PLAIN_MESSAGE);
     }
 }

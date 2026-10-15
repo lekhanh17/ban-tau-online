@@ -68,9 +68,9 @@ public class ServerMain {
         batDauCanhGac();
 
         try (ServerSocket server = BaoMat.taoServerSocket(port)) {
-            System.out.println("=== SERVER BAN TAU ONLINE ===");
-            System.out.println("Che do duong truyen: " + BaoMat.moTaCheDo());
-            System.out.println("Dang lang nghe tai cong " + port + ".");
+            System.out.println("=== SERVER BẮN TÀU ONLINE ===");
+            System.out.println("Chế độ đường truyền: " + BaoMat.moTaCheDo());
+            System.out.println("Đang lắng nghe tại cổng " + port + ".");
 
             while (true) {
                 Socket socket = server.accept();
@@ -78,13 +78,13 @@ public class ServerMain {
                 try {
                     pool.execute(new ClientHandler(socket));
                 } catch (IOException e) {
-                    System.out.println("Khong tao duoc handler: " + e.getMessage());
+                    System.out.println("Không tạo được handler: " + e.getMessage());
                     socket.close();
                 }
             }
 
         } catch (IOException e) {
-            System.out.println("Loi server: " + e.getMessage());
+            System.out.println("Lỗi server: " + e.getMessage());
         } finally {
             pool.shutdownNow();
         }
@@ -102,13 +102,13 @@ public class ServerMain {
         if (Database.khoiTao()) {
             players = new PlayerDaoMySql();
             matches = new MatchDaoMySql();
-            System.out.println("[CSDL] Tai khoan va lich su duoc luu vao MySQL.");
+            System.out.println("[CSDL] Tài khoản và lịch sử được lưu vào MySQL.");
         } else {
             DaoRam ram = new DaoRam();
             players = ram;
             matches = ram;
-            System.out.println("[CSDL] CHE DO KHONG CSDL: tai khoan chi luu tam trong"
-                    + " bo nho, tat server la mat.");
+            System.out.println("[CSDL] CHẾ ĐỘ KHÔNG CSDL: tài khoản chỉ lưu tạm trong"
+                    + " bộ nhớ, tắt server là mất.");
         }
     }
 
@@ -157,8 +157,8 @@ public class ServerMain {
                     Packet ping = Packet.of(PacketType.PING);
                     for (ClientHandler c : USERS.values()) {
                         if (c.soGiayImLang() > Protocol.TIMEOUT_SECONDS) {
-                            c.ngatKetNoi("khong tra loi PING trong "
-                                    + Protocol.TIMEOUT_SECONDS + " giay");
+                            c.ngatKetNoi("không trả lời PING trong "
+                                    + Protocol.TIMEOUT_SECONDS + " giây");
                         } else {
                             c.send(ping);
                         }
@@ -168,11 +168,11 @@ public class ServerMain {
         }, "canh-gac");
         canhGac.setDaemon(true);
         canhGac.start();
-        System.out.println("[CANH GAC] Moi luot " + Protocol.TURN_SECONDS
-                + " giay. PING moi " + Protocol.PING_INTERVAL_SECONDS
-                + " giay, ngat sau " + Protocol.TIMEOUT_SECONDS + " giay im lang.");
-        System.out.println("[VAO LAI] Rot mang giua van duoc giu phong "
-                + Protocol.RECONNECT_SECONDS + " giay de dang nhap lai.");
+        System.out.println("[CANH GÁC] Mỗi lượt " + Protocol.TURN_SECONDS
+                + " giây. PING mỗi " + Protocol.PING_INTERVAL_SECONDS
+                + " giây, ngắt sau " + Protocol.TIMEOUT_SECONDS + " giây im lặng.");
+        System.out.println("[VÀO LẠI] Rớt mạng giữa ván được giữ phòng "
+                + Protocol.RECONNECT_SECONDS + " giây để đăng nhập lại.");
     }
 
     public static PlayerDao players() {

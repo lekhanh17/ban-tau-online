@@ -21,7 +21,7 @@ public enum MucDoBot {
      * thong tin nao tu ket qua cac phat truoc. Moi thuat toan khac phai tot
      * hon no ro ret, neu khong thi coi nhu khong lam duoc gi.
      */
-    DE("De", "Ban ngau nhien, khong suy luan gi"),
+    DE("Dễ", "Bắn ngẫu nhiên, không suy luận gì"),
 
     /**
      * San va diet (hunt and target) + quet theo luoi ban co.
@@ -30,7 +30,7 @@ public enum MucDoBot {
      * {@code (x + y)} chan. Dung thong tin tu phat truoc, nhung chi o muc
      * cuc bo - khong biet suy luan toan ban do.
      */
-    THUONG("Thuong", "San - diet, quet theo luoi ban co"),
+    THUONG("Thường", "Săn - diệt, quét theo lưới bản đồ"),
 
     /**
      * Thuat toan xac suat: dem so cach dat cac tau con lai di qua tung o.
@@ -40,7 +40,7 @@ public enum MucDoBot {
      * tu biet con tau dai 5 o chi con nam duoc o dau khi ban do da bi ban
      * nhieu. Xem {@code bantau.bot.BanDoXacSuat}.
      */
-    KHO("Kho", "Tinh xac suat tung o tu cac cach dat tau con lai");
+    KHO("Khó", "Tính xác suất từng ô từ các cách đặt tàu còn lại");
 
     private final String ten;
     private final String moTa;

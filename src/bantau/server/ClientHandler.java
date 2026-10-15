@@ -75,11 +75,10 @@ public class ClientHandler implements Runnable {
 
     /** Dong ket noi tu phia server - dung khi client khong con tra loi. */
     public void ngatKetNoi(String lyDo) {
-        System.out.println("Ngat ket noi " + getUsername() + ": " + lyDo);
+        System.out.println("Ngắt kết nối " + getUsername() + ": " + lyDo);
         try {
             socket.close();   // lam readObject() o thread kia bat loi va don dep
         } catch (IOException ignored) {
-            // khong con gi de lam
         }
     }
 
@@ -94,7 +93,7 @@ public class ClientHandler implements Runnable {
             // doi tuong se chi gui tham chieu cu - ben nhan nhan du lieu cu.
             out.reset();
         } catch (IOException e) {
-            System.out.println("Khong gui duoc toi " + getUsername() + ": " + e.getMessage());
+            System.out.println("Không gửi được tới " + getUsername() + ": " + e.getMessage());
         }
     }
 
@@ -103,14 +102,14 @@ public class ClientHandler implements Runnable {
     }
 
     /* ------------------------------------------------------------------ */
-    /* Vong doi                                                           */
+    /* Vòng đời                                                          */
     /* ------------------------------------------------------------------ */
 
     @Override
     public void run() {
-        System.out.println("Ket noi moi tu " + socket.getRemoteSocketAddress());
+        System.out.println("Kết nối mới từ " + socket.getRemoteSocketAddress());
         try {
-            send(Packet.of(PacketType.SYSTEM, "Chao mung! Hay dang nhap bang lenh LOGIN."));
+            send(Packet.of(PacketType.SYSTEM, "Chào mừng! Hãy đăng nhập bằng lệnh LOGIN."));
 
             while (true) {
                 Object obj = in.readObject();
@@ -134,11 +133,11 @@ public class ClientHandler implements Runnable {
             }
 
         } catch (EOFException e) {
-            System.out.println(getUsername() + " da dong ket noi.");
+            System.out.println(getUsername() + " đã đóng kết nối.");
         } catch (SocketException e) {
-            System.out.println(getUsername() + " mat ket noi dot ngot: " + e.getMessage());
+            System.out.println(getUsername() + " mất kết nối đột ngột: " + e.getMessage());
         } catch (IOException | ClassNotFoundException e) {
-            System.out.println(getUsername() + " loi: " + e);
+            System.out.println(getUsername() + " lỗi: " + e);
         } finally {
             donDep();
         }
@@ -151,7 +150,7 @@ public class ClientHandler implements Runnable {
             switch (packet.type()) {
                 case LOGIN -> xuLyDangNhap(packet.arg(0), packet.arg(1));
                 case REGISTER -> xuLyDangKy(packet.arg(0), packet.arg(1));
-                default -> sendError(Protocol.E_NOT_LOGGED_IN, "Ban phai dang nhap truoc");
+                default -> sendError(Protocol.E_NOT_LOGGED_IN, "Bạn phải đăng nhập trước");
             }
             return;
         }
@@ -159,7 +158,7 @@ public class ClientHandler implements Runnable {
         // ----- Da dang nhap -----
         switch (packet.type()) {
             case LOGIN ->
-                    sendError(Protocol.E_BAD_STATE, "Ban da dang nhap voi ten " + username);
+                    sendError(Protocol.E_BAD_STATE, "Bạn đã đăng nhập với tên " + username);
 
             case CHAT -> xuLyChat(packet.arg(0));
 
@@ -167,7 +166,7 @@ public class ClientHandler implements Runnable {
                     send(Packet.of(PacketType.WHO_LIST, ServerMain.onlineNames()));
 
             case REGISTER ->
-                    sendError(Protocol.E_BAD_STATE, "Ban da dang nhap roi");
+                    sendError(Protocol.E_BAD_STATE, "Bạn đã đăng nhập rồi");
 
             case ROOM_LIST -> ServerMain.rooms().sendRoomList(this);
 
@@ -192,12 +191,12 @@ public class ClientHandler implements Runnable {
 
             default ->
                     sendError(Protocol.E_UNKNOWN_CMD,
-                            "Client khong duoc phep gui ban tin loai " + packet.type());
+                            "Client không được phép gửi bản tin loại " + packet.type());
         }
     }
 
     /* ------------------------------------------------------------------ */
-    /* Cac lenh cu the                                                    */
+    /* Các lệnh cụ thể                                                   */
     /* ------------------------------------------------------------------ */
 
     /**
@@ -219,15 +218,15 @@ public class ClientHandler implements Runnable {
     /** Doi ma loi thanh cau giai thich cho nguoi choi doc. */
     private String moTaLoi(String code) {
         return switch (code) {
-            case Protocol.E_NAME_INVALID -> "Ten phai dai " + Protocol.NAME_MIN + "-"
-                    + Protocol.NAME_MAX + " ky tu, chi gom chu cai, so va dau gach duoi";
-            case Protocol.E_PASS_INVALID -> "Mat khau phai dai " + Protocol.PASS_MIN + "-"
-                    + Protocol.PASS_MAX + " ky tu";
-            case Protocol.E_NAME_EXISTS -> "Ten nay da co nguoi dang ky";
-            case Protocol.E_NO_ACCOUNT -> "Chua co tai khoan nay, hay bam Dang ky truoc";
-            case Protocol.E_WRONG_PASSWORD -> "Sai mat khau";
-            case Protocol.E_DB_ERROR -> "Loi CSDL phia server, thu lai sau";
-            default -> "Khong dang nhap duoc";
+            case Protocol.E_NAME_INVALID -> "Tên phải dài " + Protocol.NAME_MIN + "-"
+                    + Protocol.NAME_MAX + " ký tự, chỉ gồm chữ cái, số và dấu gạch dưới";
+            case Protocol.E_PASS_INVALID -> "Mật khẩu phải dài " + Protocol.PASS_MIN + "-"
+                    + Protocol.PASS_MAX + " ký tự";
+            case Protocol.E_NAME_EXISTS -> "Tên này đã có người đăng ký";
+            case Protocol.E_NO_ACCOUNT -> "Chưa có tài khoản này, hãy bấm Đăng ký trước";
+            case Protocol.E_WRONG_PASSWORD -> "Sai mật khẩu";
+            case Protocol.E_DB_ERROR -> " lỗi CSDL phía server, thử lại sau";
+            default -> "Không đăng nhập được";
         };
     }
 
@@ -245,8 +244,8 @@ public class ClientHandler implements Runnable {
         // voi may" se bi loi dung de giau nhung tran thua.
         if (n.toLowerCase().startsWith(Protocol.BOT_PREFIX.toLowerCase())) {
             sendError(Protocol.E_NAME_RESERVED,
-                    "Ten bat dau bang \"" + Protocol.BOT_PREFIX
-                            + "\" danh rieng cho doi thu may");
+                    "Tên bắt đầu bằng \"" + Protocol.BOT_PREFIX
+                            + "\" dành riêng cho đối thủ máy");
             return;
         }
 
@@ -257,7 +256,7 @@ public class ClientHandler implements Runnable {
         }
 
         send(Packet.of(PacketType.REGISTER_OK, n));
-        System.out.println("Tao tai khoan moi: " + n);
+        System.out.println("Tạo tài khoản mới: " + n);
     }
 
     private void xuLyDangNhap(String ten, String matKhau) {
@@ -269,7 +268,7 @@ public class ClientHandler implements Runnable {
             return;
         }
 
-        // Kiem tra tai khoan trong CSDL truoc...
+        // Kiem tra tai khoan trong CSDL truoc
         String err = ServerMain.players().kiemTraDangNhap(n, matKhau);
         if (err != null) {
             sendError(err, moTaLoi(err));
@@ -279,15 +278,15 @@ public class ClientHandler implements Runnable {
         // ...roi moi xem ten do co dang duoc dung o may khac khong.
         if (!ServerMain.registerUser(n, this)) {
             sendError(Protocol.E_NAME_TAKEN,
-                    "Tai khoan '" + n + "' dang dang nhap o mot may khac");
+                    "Tài khoản '" + n + "' đang đăng nhập ở một máy khác");
             return;
         }
 
         username = n;
         send(Packet.of(PacketType.LOGIN_OK, n));
         send(Packet.of(PacketType.SYSTEM,
-                "Dang co " + ServerMain.onlineCount() + " nguoi online."));
-        System.out.println("Dang nhap: " + n + " (online: " + ServerMain.onlineCount() + ")");
+                "Đang có " + ServerMain.onlineCount() + " người online."));
+        System.out.println("Đăng nhập: " + n + " (online: " + ServerMain.onlineCount() + ")");
 
         // Truoc do co bi rot mang giua van khong? Neu co va chua het thoi
         // gian an han thi dua thang vao lai van dang do, khong qua lobby.
@@ -296,10 +295,10 @@ public class ClientHandler implements Runnable {
             String loiVaoLai = cho.vaoLai(this);
             if (loiVaoLai == null) {
                 send(Packet.of(PacketType.SYSTEM,
-                        "Da khoi phuc van dau dang do cua ban."));
+                        "Đã khôi phục ván đấu dang dở của bạn."));
                 return;
             }
-            System.out.println("Khong dua " + n + " vao lai duoc: " + loiVaoLai);
+            System.out.println("Không đưa " + n + " vào lại được: " + loiVaoLai);
         }
 
         ServerMain.rooms().sendRoomList(this);
@@ -320,11 +319,11 @@ public class ClientHandler implements Runnable {
 
     private void xuLyTaoPhong(String tenPhong) {
         if (room != null) {
-            sendError(Protocol.E_ALREADY_IN_ROOM, "Ban dang o trong mot phong");
+            sendError(Protocol.E_ALREADY_IN_ROOM, "Bạn đang ở trong một phòng");
             return;
         }
         String n = (tenPhong == null || tenPhong.isBlank())
-                ? "Phong cua " + username
+                ? "Phòng của " + username
                 : tenPhong.trim();
         if (n.length() > Protocol.ROOM_NAME_MAX) {
             n = n.substring(0, Protocol.ROOM_NAME_MAX);
@@ -332,30 +331,30 @@ public class ClientHandler implements Runnable {
         Room r = ServerMain.rooms().createRoom(n);
         String err = r.join(this);
         if (err != null) {
-            sendError(err, "Khong vao duoc phong vua tao");
+            sendError(err, "Không vào được phòng vừa tạo");
         }
     }
 
     private void xuLyVaoPhong(int roomId) {
         if (room != null) {
-            sendError(Protocol.E_ALREADY_IN_ROOM, "Ban dang o trong mot phong");
+            sendError(Protocol.E_ALREADY_IN_ROOM, "Bạn đang ở trong một phòng");
             return;
         }
         Room r = ServerMain.rooms().getRoom(roomId);
         if (r == null) {
-            sendError(Protocol.E_ROOM_NOT_FOUND, "Phong #" + roomId + " khong ton tai");
+            sendError(Protocol.E_ROOM_NOT_FOUND, "Phòng #" + roomId + " không tồn tại");
             return;
         }
         String err = r.join(this);
         if (err != null) {
-            sendError(err, "Khong vao duoc phong #" + roomId);
+            sendError(err, "Không vào được phòng #" + roomId);
         }
     }
 
     private void xuLyRoiPhong() {
         Room r = room;
         if (r == null) {
-            sendError(Protocol.E_NOT_IN_ROOM, "Ban chua o trong phong nao");
+            sendError(Protocol.E_NOT_IN_ROOM, "Bạn chưa ở trong phòng nào");
             return;
         }
         r.leave(this);
@@ -371,25 +370,25 @@ public class ClientHandler implements Runnable {
     private void xuLySanSang(Packet packet) {
         Room r = room;
         if (r == null) {
-            sendError(Protocol.E_NOT_IN_ROOM, "Ban chua o trong phong nao");
+            sendError(Protocol.E_NOT_IN_ROOM, "Bạn chưa ở trong phòng nào");
             return;
         }
         Board board = packet.payload(Board.class);
         String err = r.handleReady(this, board);
         if (err != null) {
-            sendError(err, "So do dat tau khong hop le hoac sai thoi diem");
+            sendError(err, "Sơ đồ đặt tàu không hợp lệ hoặc sai thời điểm");
         }
     }
 
     private void xuLyBan(int x, int y) {
         Room r = room;
         if (r == null) {
-            sendError(Protocol.E_NOT_IN_ROOM, "Ban chua o trong phong nao");
+            sendError(Protocol.E_NOT_IN_ROOM, "Bạn chưa ở trong phòng nào");
             return;
         }
         String err = r.handleFire(this, x, y);
         if (err != null) {
-            sendError(err, "Khong ban duoc vao o (" + x + "," + y + ")");
+            sendError(err, "Không bắn được vào ô (" + x + "," + y + ")");
         }
     }
 
@@ -412,12 +411,12 @@ public class ClientHandler implements Runnable {
     private void xuLyThemBot(String maMucDo) {
         Room r = room;
         if (r == null) {
-            sendError(Protocol.E_NOT_IN_ROOM, "Ban chua o trong phong nao");
+            sendError(Protocol.E_NOT_IN_ROOM, "Bạn chưa ở trong phòng nào");
             return;
         }
         String loi = r.coTheThemBot();
         if (loi != null) {
-            sendError(loi, "Khong them doi thu may vao luc nay duoc");
+            sendError(loi, "Không thêm đối thủ máy vào lúc này được");
             return;
         }
         MucDoBot mucDo = MucDoBot.tuChuoi(maMucDo);
@@ -432,20 +431,20 @@ public class ClientHandler implements Runnable {
                     .dangKy(bot.ten(), bot.matKhau());
             if (loiDangKy != null) {
                 sendError(Protocol.E_BOT_FAILED,
-                        "Khong tao duoc tai khoan cho doi thu may");
+                        "Không tạo được tài khoản cho đối thủ máy");
                 return;
             }
 
             bot.chay();
             send(Packet.of(PacketType.SYSTEM,
-                    "Dang goi doi thu may (" + bot.ten() + ", muc "
-                            + mucDo.ten() + ") vao phong..."));
-            System.out.println("Them bot " + bot.ten() + " muc " + mucDo.ten()
-                    + " vao phong #" + r.getId()
-                    + " theo yeu cau cua " + username);
+                    "Đang gọi đối thủ máy (" + bot.ten() + ", mức "
+                            + mucDo.ten() + ") vào phòng..."));
+            System.out.println("Thêm bot " + bot.ten() + " mức " + mucDo.ten()
+                    + " vào phòng #" + r.getId()
+                    + " theo yêu cầu của " + username);
         } catch (RuntimeException e) {
             sendError(Protocol.E_BOT_FAILED,
-                    "Khong khoi dong duoc doi thu may: " + e.getMessage());
+                    "Không khởi động được đối thủ máy: " + e.getMessage());
         }
     }
 
@@ -470,8 +469,8 @@ public class ClientHandler implements Runnable {
         } catch (IOException ignored) {
             // khong con gi de lam
         }
-        System.out.println(getUsername() + " da ngat. Con lai "
-                + ServerMain.onlineCount() + " nguoi, "
-                + ServerMain.rooms().roomCount() + " phong.");
+        System.out.println(getUsername() + " đã ngắt kết nối. Còn lại "
+                + ServerMain.onlineCount() + " người, "
+                + ServerMain.rooms().roomCount() + " phòng.");
     }
 }

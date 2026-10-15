@@ -53,7 +53,7 @@ public class ClientMain extends JFrame implements ServerConnection.Listener {
     private String matKhauTam = "";
 
     public ClientMain() {
-        setTitle("Ban tau online - Battleship");
+        setTitle("Bắn tàu online - Battleship");
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         setMinimumSize(new Dimension(900, 620));
 
@@ -97,11 +97,11 @@ public class ClientMain extends JFrame implements ServerConnection.Listener {
      */
     public void doConnect(String host, int port, String ten, String matKhau, boolean dangKy) {
         if (ten.isEmpty()) {
-            loginPanel.setStatusLoi("Hay nhap ten nguoi choi");
+            loginPanel.setStatusLoi("Hãy nhập tên người chơi");
             return;
         }
         if (matKhau.isEmpty()) {
-            loginPanel.setStatusLoi("Hay nhap mat khau");
+            loginPanel.setStatusLoi("Hãy nhập mật khẩu");
             return;
         }
 
@@ -110,7 +110,7 @@ public class ClientMain extends JFrame implements ServerConnection.Listener {
 
         loginPanel.setBusy(true);
         loginPanel.setStatusLoi(" ");
-        loginPanel.setStatus("Dang ket noi toi " + host + ":" + port + "...");
+        loginPanel.setStatus("Đang kết nối tới " + host + ":" + port + "...");
         try {
             // Dong ket noi cu neu lan truoc bi tu choi, roi mo ket noi moi.
             connection.close();
@@ -119,7 +119,7 @@ public class ClientMain extends JFrame implements ServerConnection.Listener {
                     dangKy ? PacketType.REGISTER : PacketType.LOGIN, ten, matKhau));
         } catch (IOException e) {
             loginPanel.setBusy(false);
-            loginPanel.setStatusLoi("Khong ket noi duoc: " + e.getMessage());
+            loginPanel.setStatusLoi("Không kết nối được: " + e.getMessage());
         }
     }
 
@@ -162,7 +162,7 @@ public class ClientMain extends JFrame implements ServerConnection.Listener {
     @Override
     @SuppressWarnings("unchecked")
     public void onPacket(Packet p) {
-        // Server hoi "con song khong" - tra loi ngay, khong ghi gi ra man hinh.
+        // Server hoi "con ket noi ko" - tra loi ngay, khong ghi gi ra man hinh.
         if (p.type() == PacketType.PING) {
             connection.send(Packet.of(PacketType.PONG));
             return;
@@ -180,7 +180,7 @@ public class ClientMain extends JFrame implements ServerConnection.Listener {
 
             // Tao tai khoan xong thi dang nhap luon cho nguoi choi do phai go lai.
             case REGISTER_OK -> {
-                loginPanel.setStatusOk("Tao tai khoan thanh cong, dang dang nhap...");
+                loginPanel.setStatusOk("Tạo tài khoản thành công, đang đăng nhập...");
                 connection.send(Packet.of(PacketType.LOGIN, tenTam, matKhauTam));
             }
 
@@ -254,11 +254,11 @@ public class ClientMain extends JFrame implements ServerConnection.Listener {
             connection.close();
             return;
         }
-        gamePanel.log("LOI [" + code + "] " + moTa);
+        gamePanel.log("LỖI [" + code + "] " + moTa);
 
         if (Protocol.E_ROOM_FULL.equals(code) || Protocol.E_ROOM_NOT_FOUND.equals(code)) {
             JOptionPane.showMessageDialog(this, moTa,
-                    "Khong vao duoc phong", JOptionPane.WARNING_MESSAGE);
+                    "Không vào được phòng", JOptionPane.WARNING_MESSAGE);
             doRefreshRooms();
         } else if (Protocol.E_BAD_PLACEMENT.equals(code)) {
             gamePanel.datTauBiTuChoi(moTa);
@@ -292,18 +292,18 @@ public class ClientMain extends JFrame implements ServerConnection.Listener {
         if (tenCu.isEmpty()) {
             loginPanel.setStatusLoi(lyDo);
             JOptionPane.showMessageDialog(this,
-                    lyDo + "\nUng dung se quay ve man hinh dang nhap.",
-                    "Mat ket noi", JOptionPane.ERROR_MESSAGE);
+                    lyDo + "\nỨng dụng sẽ quay về màn hình đăng nhập.",
+                    "Mất kết nối", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
         loginPanel.presetTen(tenCu);
         loginPanel.setStatusLoi(lyDo);
         JOptionPane.showMessageDialog(this,
-                lyDo + "\n\nNeu ban dang danh do, van dau duoc giu lai "
-                        + Protocol.RECONNECT_SECONDS + " giay."
-                        + "\nNhap lai mat khau va bam Dang nhap de vao lai van.",
-                "Mat ket noi", JOptionPane.WARNING_MESSAGE);
+                lyDo + "\n\nNếu bạn đang chơi, ván đấu sẽ được giữ lại "
+                        + Protocol.RECONNECT_SECONDS + " giây."
+                        + "\nNhập lại mật khẩu và bấm Đăng nhập để vào lại ván đấu."
+                , "Mất kết nối", JOptionPane.WARNING_MESSAGE);
     }
 
     /* ------------------------------------------------------------------ */
