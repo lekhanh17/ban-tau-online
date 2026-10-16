@@ -125,7 +125,7 @@ public final class BanDoXacSuat implements ChienThuatBan {
 
     @Override
     public String ten() {
-        return "xac suat" + (dungLuoi ? " + luoi" : "");
+        return "xác suất" + (dungLuoi ? " + lưới" : "");
     }
 
     /** Xoa sach hieu biet - goi khi bat dau van moi. */
@@ -362,7 +362,7 @@ public final class BanDoXacSuat implements ChienThuatBan {
      * @return toa do {x, y}, hoac null neu khong con o nao de ban
      */
     @Override
-    public int[] chonO(Random rnd) {
+    public int[] chonO(Random rnd) { //heuristic
         boolean cheDoDiet = tinhDiem();
 
         // Luoi chi ap dung khi dang SAN. Dang diet thi phai ban dung o ke

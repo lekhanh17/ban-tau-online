@@ -59,6 +59,6 @@ public final class BanNgauNhien implements ChienThuatBan {
 
     @Override
     public String ten() {
-        return "ngau nhien";
+        return "ngẫu nhiên";
     }
 }
