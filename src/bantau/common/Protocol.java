@@ -82,8 +82,17 @@ public final class Protocol {
      * nhin ten la biet ngay day co phai doi thu may khong, va he thong co
      * cho de doi xu khac di - cu the la khong ghi tran dau voi may vao thanh
      * tich.
+     *
+     * <p><b>BAT BUOC chi dung chu cai ASCII khong dau.</b> Ten bot duoc
+     * ghep tu tien to nay roi di qua dung duong dang nhap nhu nguoi that,
+     * nen no phai khop {@link #NAME_PATTERN} (chi nhan {@code [A-Za-z0-9_]}).
+     * Da tung co luc tien to nay bi doi thanh "May_" co dau: server van tao
+     * duoc tai khoan bot (vi goi thang xuong DAO, khong qua kiem tra), nhung
+     * den buoc BotClient gui LOGIN thi bi tra ve {@link #E_NAME_INVALID},
+     * bot khong vao phong duoc va nguoi choi ngoi nhin nut "Dang goi doi thu
+     * may..." ket vinh vien. Khoi kiem tra tinh ben duoi chan dung loi do.
      */
-    public static final String BOT_PREFIX = "Máy_";
+    public static final String BOT_PREFIX = "May_";
 
     /**
      * Bot cho bao nhieu mili giay truoc moi phat ban.
@@ -144,4 +153,21 @@ public final class Protocol {
     public static final int RANK_TOP = 10;
     /** So tran gan nhat hien trong lich su dau. */
     public static final int HISTORY_LIMIT = 20;
+
+    /**
+     * Chot an toan: bao loi ngay luc nap lop neu {@link #BOT_PREFIX} khong
+     * con khop {@link #NAME_PATTERN}.
+     *
+     * <p>Sai o day thi phai bao ngay luc khoi dong server, chu khong de no
+     * im lang cho den khi co nguoi bam nut goi bot roi moi hong.
+     */
+    static {
+        if (!(BOT_PREFIX + "x1").matches(NAME_PATTERN)) {
+            throw new ExceptionInInitializerError(
+                    "BOT_PREFIX \"" + BOT_PREFIX + "\" khong khop NAME_PATTERN "
+                            + NAME_PATTERN + " - ten bot se bi tu choi khi dang nhap. "
+                            + "Chi dung chu cai ASCII khong dau, so va dau gach duoi.");
+        }
+    }
+
 }

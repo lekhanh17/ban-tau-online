@@ -13,8 +13,17 @@ import bantau.common.ShipType;
 
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Cursor;
+import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.GridLayout;
+import java.awt.RenderingHints;
+import java.awt.geom.RoundRectangle2D;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.EnumMap;
@@ -23,19 +32,27 @@ import java.util.Map;
 import java.util.Random;
 
 import javax.swing.BorderFactory;
+import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.ButtonGroup;
+import javax.swing.DefaultListCellRenderer;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
+import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
 import javax.swing.JTextField;
+import javax.swing.JTextPane;
 import javax.swing.JToggleButton;
+import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingConstants;
 import javax.swing.Timer;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.SimpleAttributeSet;
+import javax.swing.text.StyleConstants;
+import javax.swing.text.StyledDocument;
 
 /**
  * MAN HINH TRONG PHONG
@@ -54,6 +71,10 @@ import javax.swing.Timer;
  * kiem tra vi tri dat tau hop le truoc khi gui len server (tranh gui rac),
  * va de tu tinh lai ket qua khi doi thu ban trung minh (vi day la ban do
  * that cua minh nen tinh cuc bo se ra dung ket qua server da tinh).
+ *
+ * <p>Ban nay chi doi phan GIAO DIEN (mau sac, the bo goc, chip trang thai,
+ * nhat ky co mau). Toan bo luong xu ly ban tin, dong ho va luat choi giu
+ * nguyen nhu ban cu, nen khong can sua bat ky lop nao khac.
  */
 public class GamePanel extends JPanel {
 
@@ -63,20 +84,54 @@ public class GamePanel extends JPanel {
     private static final String THE_DAT_TAU = "dat_tau";
     private static final String THE_TRAN_DAU = "tran_dau";
 
+    // ---------------------- Bang mau dung chung ----------------------
+
+    private static final Color NEN        = new Color(0xEE, 0xF3, 0xF8);
+    private static final Color THE_TRANG  = new Color(0xFF, 0xFF, 0xFF);
+    private static final Color VIEN       = new Color(0xDD, 0xE4, 0xEC);
+    private static final Color CHU        = new Color(0x1F, 0x29, 0x37);
+    private static final Color CHU_MO     = new Color(0x6B, 0x72, 0x80);
+    private static final Color XANH       = new Color(0x1D, 0x4E, 0xD8);
+    private static final Color XANH_DAM   = new Color(0x15, 0x3E, 0xAD);
+    private static final Color XANH_NHAT  = new Color(0xE8, 0xF0, 0xFE);
+    private static final Color LUC        = new Color(0x15, 0x80, 0x3D);
+    private static final Color LUC_NHAT   = new Color(0xE3, 0xF6, 0xE9);
+    private static final Color DO         = new Color(0xB9, 0x1C, 0x1C);
+    private static final Color DO_NHAT    = new Color(0xFD, 0xE8, 0xE8);
+    private static final Color CAM        = new Color(0xB4, 0x7B, 0x0B);
+    private static final Color CAM_NHAT   = new Color(0xFD, 0xF3, 0xDC);
+    private static final Color TIM        = new Color(0x6D, 0x28, 0xD9);
+
+    private static final Font F_TEN_PHONG = new Font("SansSerif", Font.BOLD, 20);
+    private static final Font F_NHAN      = new Font("SansSerif", Font.PLAIN, 12);
+    private static final Font F_NHAN_DAM  = new Font("SansSerif", Font.BOLD, 14);
+    private static final Font F_THUONG    = new Font("SansSerif", Font.PLAIN, 13);
+    private static final Font F_NHO       = new Font("SansSerif", Font.PLAIN, 11);
+
     private final ClientMain app;
 
+    /* ----- phan dau man hinh ----- */
     private final JLabel roomLabel = new JLabel(" ");
+    private final Chip chuPhongBadge =
+            new Chip("CHỦ PHÒNG", TIM, new Color(0xF1, 0xEA, 0xFD));
+    private final JLabel doiThuLabel = new JLabel("-");
+    private final Chip chipTrangThai = new Chip("Đang chờ", CAM, CAM_NHAT);
     private final JLabel statusLabel = new JLabel(" ");
 
-    private final JTextArea logArea = new JTextArea();
+    /* ----- nhat ky va chat ----- */
+    private final JTextPane logPane = new JTextPane();
     private final JTextField chatField = new JTextField();
 
-    private final JPanel centerPanel = new JPanel(new BorderLayout(8, 8));
+    private final JPanel centerPanel = new JPanel(new BorderLayout(10, 10));
     private final CardLayout dieuKhienCards = new CardLayout();
     private final JPanel dieuKhienPanel = new JPanel(dieuKhienCards);
 
     private final BoardView boardCuaMinh = new BoardView();
     private final BoardView boardDoiThu = new BoardView();
+
+    /** Hai the boc quanh ban co - dung de to sang ben dang duoc phep bam. */
+    private TheBanCo theCuaMinh;
+    private TheBanCo theDoiThu;
 
     /* ----- giai doan dat tau ----- */
     /**
@@ -87,8 +142,8 @@ public class GamePanel extends JPanel {
     private Board modelCuaMinh = new Board();
     private final Map<ShipType, JToggleButton> nutTau = new EnumMap<>(ShipType.class);
     private final JToggleButton nutXoay = new JToggleButton("Hướng: Nằm ngang");
-    private final JButton nutNgauNhien = new JButton("Đặt ngẫu nhiên");
-    private final JButton nutSanSang = new JButton("Sẵn sàng");
+    private final JButton nutNgauNhien = new Nut("Đặt ngẫu nhiên", THE_TRANG, XANH, true);
+    private final JButton nutSanSang = new Nut("Sẵn sàng", LUC, Color.WHITE, false);
     private ShipType tauDangChon = ShipType.CARRIER;
     private Orientation huongDangChon = Orientation.HORIZONTAL;
     private int hoverX = -1;
@@ -103,19 +158,26 @@ public class GamePanel extends JPanel {
     private int giayConLai;
 
     /** Nut goi doi thu may, nam o the "dang cho". */
-    private final JButton nutGoiMay = new JButton("Chơi với máy");
+    private final JButton nutGoiMay = new Nut("Chơi với máy", XANH, Color.WHITE, false);
 
     /** Chon muc do kho cho doi thu may. */
     private final JComboBox<MucDoBot> chonMucDo =
             new JComboBox<>(MucDoBot.values());
 
-    private String tenPhong = "";
+    /** Thong tin phong, giu rieng tung manh de dung lai phan dau man hinh. */
+    private String maPhong = "";
+    private String tenPhongGoc = "";
+    private boolean laChuPhong;
     private String doiThu = "-";
 
     public GamePanel(ClientMain app) {
         this.app = app;
-        setLayout(new BorderLayout(8, 8));
-        setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        setLayout(new BorderLayout(12, 12));
+        setBackground(NEN);
+        setBorder(BorderFactory.createEmptyBorder(14, 14, 14, 14));
+
+        centerPanel.setOpaque(false);
+        dieuKhienPanel.setOpaque(false);
 
         add(buildHeader(), BorderLayout.NORTH);
         add(centerPanel, BorderLayout.CENTER);
@@ -123,7 +185,7 @@ public class GamePanel extends JPanel {
         add(buildControls(), BorderLayout.SOUTH);
 
         centerPanel.add(buildBoardsRow(), BorderLayout.CENTER);
-        centerPanel.add(dieuKhienPanel, BorderLayout.SOUTH);
+        centerPanel.add(bocThe(dieuKhienPanel), BorderLayout.SOUTH);
 
         dieuKhienPanel.add(buildTheCho(), THE_CHO);
         dieuKhienPanel.add(buildTheDatTau(), THE_DAT_TAU);
@@ -133,43 +195,379 @@ public class GamePanel extends JPanel {
         noiSuKienBanCo();
     }
 
-    private JPanel buildHeader() {
-        JPanel p = new JPanel();
-        p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
-        roomLabel.setFont(new Font("SansSerif", Font.BOLD, 17));
-        statusLabel.setFont(new Font("SansSerif", Font.PLAIN, 13));
-        statusLabel.setForeground(new java.awt.Color(0x1F618D));
-        p.add(roomLabel);
-        p.add(statusLabel);
-        return p;
+    // =====================================================================
+    //  CAC THANH PHAN VE DUNG CHUNG
+    // =====================================================================
+
+    /** Nut bo goc phang, co hieu ung ro chuot. */
+    private static class Nut extends JButton {
+        private final Color nen;
+        private final boolean coVien;
+
+        Nut(String text, Color nen, Color chu, boolean coVien) {
+            super(text);
+            this.nen = nen;
+            this.coVien = coVien;
+            setFont(F_NHAN_DAM);
+            setForeground(chu);
+            setFocusPainted(false);
+            setBorderPainted(false);
+            setContentAreaFilled(false);
+            setBorder(BorderFactory.createEmptyBorder(9, 20, 9, 20));
+            setCursor(new Cursor(Cursor.HAND_CURSOR));
+        }
+
+        private Color pha(Color c, Color voi, float ti) {
+            return new Color(
+                    (int) (c.getRed()   * (1 - ti) + voi.getRed()   * ti),
+                    (int) (c.getGreen() * (1 - ti) + voi.getGreen() * ti),
+                    (int) (c.getBlue()  * (1 - ti) + voi.getBlue()  * ti));
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+            Color c = nen;
+            if (!isEnabled()) {
+                c = pha(nen, NEN, 0.62f);
+            } else if (getModel().isPressed()) {
+                c = pha(nen, Color.BLACK, 0.18f);
+            } else if (getModel().isRollover()) {
+                c = pha(nen, coVien ? XANH_NHAT : Color.WHITE, 0.16f);
+            }
+            g2.setColor(c);
+            g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 11, 11));
+
+            if (coVien) {
+                g2.setColor(isEnabled() ? XANH : VIEN);
+                g2.draw(new RoundRectangle2D.Float(0.5f, 0.5f, getWidth() - 1f, getHeight() - 1f, 11, 11));
+            }
+            g2.dispose();
+
+            Color chuGoc = getForeground();
+            if (!isEnabled()) {
+                setForeground(CHU_MO);
+            }
+            super.paintComponent(g);
+            setForeground(chuGoc);
+        }
     }
+
+    /** Nut chon tau: bat/tat, khi bat thi to mau xanh. */
+    private static final class NutTau extends JToggleButton {
+        NutTau(String text) {
+            super(text);
+            setFont(new Font("SansSerif", Font.PLAIN, 12));
+            setFocusPainted(false);
+            setBorderPainted(false);
+            setContentAreaFilled(false);
+            setBorder(BorderFactory.createEmptyBorder(7, 13, 7, 13));
+            setCursor(new Cursor(Cursor.HAND_CURSOR));
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+            boolean chon = isSelected();
+            boolean daDat = getText().contains("đã đặt");
+
+            Color nen = chon ? XANH : (daDat ? LUC_NHAT : THE_TRANG);
+            if (!isEnabled()) {
+                nen = NEN;
+            }
+            g2.setColor(nen);
+            g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 9, 9));
+
+            g2.setColor(chon ? XANH_DAM : (daDat ? LUC : VIEN));
+            g2.draw(new RoundRectangle2D.Float(0.5f, 0.5f, getWidth() - 1f, getHeight() - 1f, 9, 9));
+            g2.dispose();
+
+            setForeground(!isEnabled() ? CHU_MO
+                    : chon ? Color.WHITE : (daDat ? LUC : CHU));
+            super.paintComponent(g);
+        }
+    }
+
+    /** Chip bo tron hien mot trang thai ngan, co mau nen rieng. */
+    private static final class Chip extends JLabel {
+        private Color vien;
+        private Color nen;
+
+        Chip(String text, Color vien, Color nen) {
+            super(text);
+            this.vien = vien;
+            this.nen = nen;
+            setFont(new Font("SansSerif", Font.BOLD, 12));
+            setBorder(BorderFactory.createEmptyBorder(5, 13, 5, 13));
+            setForeground(vien);
+        }
+
+        void doiMau(String text, Color vien, Color nen) {
+            setText(text);
+            this.vien = vien;
+            this.nen = nen;
+            setForeground(vien);
+            repaint();
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(nen);
+            g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), getHeight(), getHeight()));
+            g2.setColor(vien);
+            g2.draw(new RoundRectangle2D.Float(0.5f, 0.5f, getWidth() - 1f, getHeight() - 1f,
+                    getHeight(), getHeight()));
+            g2.dispose();
+            super.paintComponent(g);
+        }
+    }
+
+    /** The trang bo goc, dung thay cho TitledBorder kieu Swing cu. */
+    private static class The extends JPanel {
+        The() {
+            setOpaque(false);
+            setBorder(BorderFactory.createEmptyBorder(14, 16, 14, 16));
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(new Color(0, 0, 0, 10));
+            g2.fill(new RoundRectangle2D.Float(1, 2, getWidth() - 2f, getHeight() - 2f, 14, 14));
+            g2.setColor(THE_TRANG);
+            g2.fill(new RoundRectangle2D.Float(0, 0, getWidth() - 2f, getHeight() - 3f, 14, 14));
+            g2.setColor(VIEN);
+            g2.draw(new RoundRectangle2D.Float(0.5f, 0.5f, getWidth() - 3f, getHeight() - 4f, 14, 14));
+            g2.dispose();
+            super.paintComponent(g);
+        }
+    }
+
+    /**
+     * The boc quanh mot ban co. Khi {@code sangLen} bat thi vien doi mau
+     * nhan - dung de bao "ban co nay dang bam duoc".
+     */
+    private static final class TheBanCo extends JPanel {
+        private final Color mauNhan;
+        private boolean sangLen;
+
+        TheBanCo(Color mauNhan) {
+            this.mauNhan = mauNhan;
+            setOpaque(false);
+            setLayout(new BorderLayout(0, 10));
+            setBorder(BorderFactory.createEmptyBorder(14, 14, 14, 14));
+        }
+
+        void setSangLen(boolean b) {
+            if (sangLen != b) {
+                sangLen = b;
+                repaint();
+            }
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+            float w = getWidth() - 2f;
+            float h = getHeight() - 3f;
+
+            if (sangLen) {
+                g2.setColor(new Color(mauNhan.getRed(), mauNhan.getGreen(), mauNhan.getBlue(), 38));
+                g2.fill(new RoundRectangle2D.Float(0, 0, w + 2, h + 2, 16, 16));
+            }
+            g2.setColor(new Color(0, 0, 0, 10));
+            g2.fill(new RoundRectangle2D.Float(1, 2, w, h, 14, 14));
+            g2.setColor(THE_TRANG);
+            g2.fill(new RoundRectangle2D.Float(0, 0, w, h, 14, 14));
+
+            g2.setColor(sangLen ? mauNhan : VIEN);
+            g2.setStroke(new java.awt.BasicStroke(sangLen ? 2f : 1f));
+            g2.draw(new RoundRectangle2D.Float(1f, 1f, w - 2f, h - 2f, 14, 14));
+            g2.dispose();
+            super.paintComponent(g);
+        }
+    }
+
+    /** Boc mot panel bat ky vao trong mot the trang. */
+    private static JPanel bocThe(JPanel ruot) {
+        The t = new The();
+        t.setLayout(new BorderLayout());
+        ruot.setOpaque(false);
+        t.add(ruot, BorderLayout.CENTER);
+        return t;
+    }
+
+    // =====================================================================
+    //  PHAN DAU MAN HINH
+    // =====================================================================
+
+    private JPanel buildHeader() {
+        The the = new The();
+        the.setLayout(new BorderLayout(12, 0));
+        the.setBorder(BorderFactory.createEmptyBorder(14, 18, 16, 18));
+
+        // --- ben trai: ten phong + huy hieu chu phong + trang thai ---
+        JPanel trai = new JPanel();
+        trai.setOpaque(false);
+        trai.setLayout(new BoxLayout(trai, BoxLayout.Y_AXIS));
+
+        JPanel hangTen = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        hangTen.setOpaque(false);
+        roomLabel.setFont(F_TEN_PHONG);
+        roomLabel.setForeground(CHU);
+
+        chuPhongBadge.setFont(new Font("SansSerif", Font.BOLD, 10));
+        chuPhongBadge.setBorder(BorderFactory.createEmptyBorder(4, 11, 4, 11));
+        chuPhongBadge.setVisible(false);
+
+        hangTen.add(roomLabel);
+        hangTen.add(chuPhongBadge);
+        hangTen.add(chipTrangThai);
+        hangTen.setAlignmentX(LEFT_ALIGNMENT);
+
+        statusLabel.setFont(F_THUONG);
+        statusLabel.setForeground(CHU_MO);
+        statusLabel.setBorder(BorderFactory.createEmptyBorder(4, 4, 0, 0));
+        statusLabel.setAlignmentX(LEFT_ALIGNMENT);
+
+        trai.add(hangTen);
+        trai.add(statusLabel);
+
+        // --- ben phai: khoi doi thu ---
+        JPanel phai = new JPanel();
+        phai.setOpaque(false);
+        phai.setLayout(new BoxLayout(phai, BoxLayout.Y_AXIS));
+
+        JLabel nhanDoiThu = new JLabel("ĐỐI THỦ");
+        nhanDoiThu.setFont(new Font("SansSerif", Font.BOLD, 10));
+        nhanDoiThu.setForeground(CHU_MO);
+        nhanDoiThu.setAlignmentX(RIGHT_ALIGNMENT);
+
+        doiThuLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
+        doiThuLabel.setForeground(CHU);
+        doiThuLabel.setAlignmentX(RIGHT_ALIGNMENT);
+
+        phai.add(nhanDoiThu);
+        phai.add(Box.createVerticalStrut(3));
+        phai.add(doiThuLabel);
+
+        the.add(trai, BorderLayout.CENTER);
+        the.add(phai, BorderLayout.EAST);
+        return the;
+    }
+
+    /** Doi mau chip theo trang thai phong. */
+    private void capNhatChip(RoomState tt) {
+        if (tt == null) {
+            chipTrangThai.doiMau("Đang chờ", CAM, CAM_NHAT);
+            return;
+        }
+        switch (tt) {
+            case PLAYING -> chipTrangThai.doiMau("Đang thi đấu", LUC, LUC_NHAT);
+            case PLACING -> chipTrangThai.doiMau("Đang đặt tàu", XANH, XANH_NHAT);
+            case PAUSED  -> chipTrangThai.doiMau("Tạm dừng", DO, DO_NHAT);
+            default      -> chipTrangThai.doiMau("Đang chờ", CAM, CAM_NHAT);
+        }
+    }
+
+    // =====================================================================
+    //  NHAT KY VA CHAT
+    // =====================================================================
 
     private JPanel buildChat() {
-        logArea.setEditable(false);
-        logArea.setLineWrap(true);
-        logArea.setWrapStyleWord(true);
-        logArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        The the = new The();
+        the.setLayout(new BorderLayout(0, 10));
+        the.setPreferredSize(new Dimension(330, 200));
 
-        JScrollPane scroll = new JScrollPane(logArea);
-        scroll.setPreferredSize(new java.awt.Dimension(300, 200));
+        JLabel tieuDe = new JLabel("NHẬT KÝ & CHAT");
+        tieuDe.setFont(new Font("SansSerif", Font.BOLD, 11));
+        tieuDe.setForeground(CHU_MO);
 
-        JPanel p = new JPanel(new BorderLayout(4, 4));
-        p.setBorder(BorderFactory.createTitledBorder("Nhat ky va chat"));
-        p.add(scroll, BorderLayout.CENTER);
+        logPane.setEditable(false);
+        logPane.setBackground(THE_TRANG);
+        logPane.setBorder(BorderFactory.createEmptyBorder(6, 8, 6, 8));
+        logPane.setFont(F_THUONG);
 
-        JPanel bottom = new JPanel(new BorderLayout(4, 0));
-        JButton sendButton = new JButton("Gửi");
+        JScrollPane scroll = new JScrollPane(logPane);
+        scroll.setBorder(BorderFactory.createLineBorder(VIEN, 1, true));
+        scroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        scroll.getViewport().setBackground(THE_TRANG);
+        scroll.getVerticalScrollBar().setUnitIncrement(16);
+
+        // --- o nhap + nut gui ---
+        chatField.setFont(F_THUONG);
+        chatField.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(VIEN, 1, true),
+                BorderFactory.createEmptyBorder(8, 10, 8, 10)));
+
+        JButton sendButton = new Nut("Gửi", XANH, Color.WHITE, false);
+        sendButton.setBorder(BorderFactory.createEmptyBorder(8, 16, 8, 16));
         sendButton.addActionListener(e -> guiChat());
         chatField.addActionListener(e -> guiChat());
+
+        JPanel bottom = new JPanel(new BorderLayout(8, 0));
+        bottom.setOpaque(false);
         bottom.add(chatField, BorderLayout.CENTER);
         bottom.add(sendButton, BorderLayout.EAST);
-        p.add(bottom, BorderLayout.SOUTH);
-        return p;
+
+        the.add(tieuDe, BorderLayout.NORTH);
+        the.add(scroll, BorderLayout.CENTER);
+        the.add(bottom, BorderLayout.SOUTH);
+        return the;
     }
 
+    /**
+     * Them mot dong vao nhat ky. Gio duoc to xam nho, noi dung to dam hon,
+     * tin chat cua nguoi choi mang mau khac tin he thong.
+     */
+    private void themDong(String gio, String ten, String noiDung, Color mauChu) {
+        StyledDocument d = logPane.getStyledDocument();
+
+        SimpleAttributeSet sGio = new SimpleAttributeSet();
+        StyleConstants.setForeground(sGio, new Color(0x9C, 0xA3, 0xAF));
+        StyleConstants.setFontSize(sGio, 11);
+        StyleConstants.setFontFamily(sGio, "SansSerif");
+
+        SimpleAttributeSet sTen = new SimpleAttributeSet();
+        StyleConstants.setForeground(sTen, XANH);
+        StyleConstants.setBold(sTen, true);
+        StyleConstants.setFontSize(sTen, 13);
+        StyleConstants.setFontFamily(sTen, "SansSerif");
+
+        SimpleAttributeSet sChu = new SimpleAttributeSet();
+        StyleConstants.setForeground(sChu, mauChu);
+        StyleConstants.setFontSize(sChu, 13);
+        StyleConstants.setFontFamily(sChu, "SansSerif");
+
+        try {
+            d.insertString(d.getLength(), gio + "  ", sGio);
+            if (ten != null && !ten.isEmpty()) {
+                d.insertString(d.getLength(), ten + ": ", sTen);
+            }
+            d.insertString(d.getLength(), noiDung + "\n", sChu);
+        } catch (BadLocationException ignore) {
+            // Chi la nhat ky hien thi, loi chen chu khong anh huong van dau.
+        }
+        logPane.setCaretPosition(d.getLength());
+    }
+
+    // =====================================================================
+    //  THANH DUOI VA HAI BAN CO
+    // =====================================================================
+
     private JPanel buildControls() {
-        JPanel p = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 6));
-        JButton leaveButton = new JButton("Rời phòng");
+        JPanel p = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 4));
+        p.setOpaque(false);
+        JButton leaveButton = new Nut("Rời phòng", DO_NHAT, DO, false);
         leaveButton.addActionListener(e -> app.doLeaveRoom());
         p.add(leaveButton);
         return p;
@@ -177,20 +575,44 @@ public class GamePanel extends JPanel {
 
     /** Hai ban co dat canh nhau: ben trai cua minh, ben phai cua doi thu. */
     private JPanel buildBoardsRow() {
-        JPanel row = new JPanel(new java.awt.GridLayout(1, 2, 12, 0));
-        row.add(boardSlot("Bàn cờ của bạn", boardCuaMinh));
-        row.add(boardSlot("Bàn cờ của đối thủ", boardDoiThu));
+        JPanel row = new JPanel(new GridLayout(1, 2, 14, 0));
+        row.setOpaque(false);
+        theCuaMinh = boardSlot("BÀN CỜ CỦA BẠN", "Tàu của bạn nằm ở đây", boardCuaMinh, LUC);
+        theDoiThu = boardSlot("BÀN CỜ CỦA ĐỐI THỦ", "Bấm vào đây để bắn", boardDoiThu, XANH);
+        row.add(theCuaMinh);
+        row.add(theDoiThu);
         return row;
     }
 
-    private JPanel boardSlot(String tieuDe, BoardView view) {
-        JPanel khung = new JPanel(new BorderLayout());
-        khung.setBorder(BorderFactory.createTitledBorder(tieuDe));
-        JPanel giua = new JPanel(new FlowLayout(FlowLayout.CENTER));
+    private TheBanCo boardSlot(String tieuDe, String phuDe, BoardView view, Color mauNhan) {
+        TheBanCo khung = new TheBanCo(mauNhan);
+
+        JPanel dau = new JPanel(new BorderLayout());
+        dau.setOpaque(false);
+
+        JLabel t = new JLabel(tieuDe);
+        t.setFont(new Font("SansSerif", Font.BOLD, 12));
+        t.setForeground(mauNhan);
+
+        JLabel p = new JLabel(phuDe, SwingConstants.RIGHT);
+        p.setFont(F_NHO);
+        p.setForeground(CHU_MO);
+
+        dau.add(t, BorderLayout.WEST);
+        dau.add(p, BorderLayout.EAST);
+
+        JPanel giua = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
+        giua.setOpaque(false);
         giua.add(view);
+
+        khung.add(dau, BorderLayout.NORTH);
         khung.add(giua, BorderLayout.CENTER);
         return khung;
     }
+
+    // =====================================================================
+    //  BA THE DIEU KHIEN
+    // =====================================================================
 
     /**
      * The "dang cho": mot dong chu, o chon muc do kho va nut goi doi thu may.
@@ -201,30 +623,61 @@ public class GamePanel extends JPanel {
      * nao dang chay ben trong bot.
      */
     private JPanel buildTheCho() {
-        JLabel nhan = new JLabel(
-                "Đang chờ đối thủ vào phòng...", SwingConstants.CENTER);
-        nhan.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        JLabel nhan = new JLabel("Đang chờ đối thủ vào phòng...", SwingConstants.CENTER);
+        nhan.setFont(new Font("SansSerif", Font.BOLD, 14));
+        nhan.setForeground(CHU);
+        nhan.setAlignmentX(CENTER_ALIGNMENT);
 
+        JLabel phu = new JLabel("Không muốn đợi? Gọi một đối thủ máy vào chơi ngay.",
+                SwingConstants.CENTER);
+        phu.setFont(F_NHAN);
+        phu.setForeground(CHU_MO);
+        phu.setAlignmentX(CENTER_ALIGNMENT);
+
+        // O chon muc do: dat be rong du de khong bi cat chu "Thường".
         chonMucDo.setSelectedItem(MucDoBot.THUONG);
+        chonMucDo.setFont(F_THUONG);
+        chonMucDo.setPreferredSize(new Dimension(150, 36));
+        chonMucDo.setMaximumSize(new Dimension(150, 36));
+        chonMucDo.setBackground(THE_TRANG);
+        chonMucDo.setFocusable(false);
+        chonMucDo.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> l, Object v, int i,
+                                                          boolean sel, boolean focus) {
+                super.getListCellRendererComponent(l, v, i, sel, focus);
+                if (v instanceof MucDoBot m) {
+                    setText(m.ten());
+                }
+                setBorder(BorderFactory.createEmptyBorder(5, 9, 5, 9));
+                return this;
+            }
+        });
         capNhatChuGiaiMucDo();
         chonMucDo.addActionListener(e -> capNhatChuGiaiMucDo());
 
-        nutGoiMay.setPreferredSize(new java.awt.Dimension(190, 32));
-        nutGoiMay.setToolTipText(
-                "Không đợi đối thủ nữa, gọi máy vào chơi ngay");
+        nutGoiMay.setPreferredSize(new Dimension(200, 36));
+        nutGoiMay.setToolTipText("Không đợi đối thủ nữa, gọi máy vào chơi ngay");
         nutGoiMay.addActionListener(e -> goiDoiThuMay());
 
-        JPanel p = new JPanel();
-        p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
-        nhan.setAlignmentX(CENTER_ALIGNMENT);
+        JLabel nhanMuc = new JLabel("Mức độ:");
+        nhanMuc.setFont(F_THUONG);
+        nhanMuc.setForeground(CHU_MO);
 
-        JPanel hangNut = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        hangNut.add(new JLabel("Mức độ:"));
+        JPanel hangNut = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
+        hangNut.setOpaque(false);
+        hangNut.add(nhanMuc);
         hangNut.add(chonMucDo);
         hangNut.add(nutGoiMay);
         hangNut.setAlignmentX(CENTER_ALIGNMENT);
 
+        JPanel p = new JPanel();
+        p.setOpaque(false);
+        p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
         p.add(nhan);
+        p.add(Box.createVerticalStrut(4));
+        p.add(phu);
+        p.add(Box.createVerticalStrut(12));
         p.add(hangNut);
         return p;
     }
@@ -259,20 +712,31 @@ public class GamePanel extends JPanel {
 
     private JPanel buildTheDatTau() {
         JPanel p = new JPanel();
+        p.setOpaque(false);
         p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
 
-        JPanel hangTau = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 4));
+        JPanel hangTau = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 2));
+        hangTau.setOpaque(false);
         ButtonGroup nhom = new ButtonGroup();
         for (ShipType t : ShipType.values()) {
-            JToggleButton nut = new JToggleButton(nhanNut(t, false));
+            JToggleButton nut = new NutTau(nhanNut(t, false));
             nut.addActionListener(e -> chonTau(t));
             nhom.add(nut);
             hangTau.add(nut);
             nutTau.put(t, nut);
         }
         nutTau.get(tauDangChon).setSelected(true);
+        hangTau.setAlignmentX(LEFT_ALIGNMENT);
 
-        JPanel hangNut = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 4));
+        JPanel hangNut = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 2));
+        hangNut.setOpaque(false);
+        nutXoay.setFont(F_THUONG);
+        nutXoay.setFocusPainted(false);
+        nutXoay.setBackground(THE_TRANG);
+        nutXoay.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(VIEN, 1, true),
+                BorderFactory.createEmptyBorder(8, 14, 8, 14)));
+        nutXoay.setCursor(new Cursor(Cursor.HAND_CURSOR));
         nutXoay.addActionListener(e -> xoayHuong());
         nutNgauNhien.addActionListener(e -> datNgauNhien());
         nutSanSang.addActionListener(e -> guiSanSang());
@@ -280,13 +744,18 @@ public class GamePanel extends JPanel {
         hangNut.add(nutXoay);
         hangNut.add(nutNgauNhien);
         hangNut.add(nutSanSang);
+        hangNut.setAlignmentX(LEFT_ALIGNMENT);
 
         JLabel huongDan = new JLabel(
                 "Chọn tàu, rê chuột vào bàn cờ bên trái để xem trước (xanh = hợp lệ,"
                         + " đỏ = không hợp lệ), click chuột trái để đặt.");
-        huongDan.setFont(new Font("SansSerif", Font.ITALIC, 12));
+        huongDan.setFont(F_NHAN);
+        huongDan.setForeground(CHU_MO);
+        huongDan.setBorder(BorderFactory.createEmptyBorder(6, 4, 0, 0));
+        huongDan.setAlignmentX(LEFT_ALIGNMENT);
 
         p.add(hangTau);
+        p.add(Box.createVerticalStrut(6));
         p.add(hangNut);
         p.add(huongDan);
         return p;
@@ -294,18 +763,21 @@ public class GamePanel extends JPanel {
 
     private JPanel buildTheTranDau() {
         JPanel p = new JPanel();
+        p.setOpaque(false);
         p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
 
-        dongHoLabel.setFont(new Font("SansSerif", Font.BOLD, 20));
+        dongHoLabel.setFont(new Font("SansSerif", Font.BOLD, 24));
         dongHoLabel.setAlignmentX(CENTER_ALIGNMENT);
 
         JLabel nhan = new JLabel(
                 "Đến lượt bạn thì bấm vào bàn cờ của đối thủ (bên phải) để bắn.",
                 SwingConstants.CENTER);
-        nhan.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        nhan.setFont(F_NHAN);
+        nhan.setForeground(CHU_MO);
         nhan.setAlignmentX(CENTER_ALIGNMENT);
 
         p.add(dongHoLabel);
+        p.add(Box.createVerticalStrut(4));
         p.add(nhan);
         return p;
     }
@@ -350,15 +822,13 @@ public class GamePanel extends JPanel {
     private void veDongHo() {
         if (giayConLai <= 0) {
             dongHoLabel.setText("Hết giờ!");
-            dongHoLabel.setForeground(new java.awt.Color(0xC0392B));
+            dongHoLabel.setForeground(DO);
             return;
         }
         dongHoLabel.setText((luotCuaMinh ? "Lượt của bạn: " : "Đối thủ còn: ")
                 + giayConLai + " giây");
         // Duoi 10 giay thi chuyen do cho de thay.
-        dongHoLabel.setForeground(giayConLai <= 10
-                ? new java.awt.Color(0xC0392B)
-                : new java.awt.Color(0x1E8449));
+        dongHoLabel.setForeground(giayConLai <= 10 ? DO : (luotCuaMinh ? LUC : CHU_MO));
     }
 
     private void noiSuKienBanCo() {
@@ -385,7 +855,7 @@ public class GamePanel extends JPanel {
     /* ------------------------------------------------------------------ */
 
     private String nhanNut(ShipType t, boolean daDat) {
-        return t.label() + " (" + t.size() + " o)" + (daDat ? " - đã đặt" : "");
+        return t.label() + " (" + t.size() + " ô)" + (daDat ? " - đã đặt" : "");
     }
 
     private void chonTau(ShipType t) {
@@ -395,7 +865,7 @@ public class GamePanel extends JPanel {
 
     private void xoayHuong() {
         huongDangChon = huongDangChon.flip();
-        nutXoay.setText("Huong: "
+        nutXoay.setText("Hướng: "
                 + (huongDangChon == Orientation.HORIZONTAL ? "Nằm ngang" : "Nằm dọc"));
         capNhatXemTruoc();
     }
@@ -481,7 +951,7 @@ public class GamePanel extends JPanel {
         // Chan ngay tai client: o da ban roi thi khong gui goi tin lam gi,
         // server chac chan tu choi bang loi E_ALREADY_SHOT.
         if (boardDoiThu.daBan(x, y)) {
-            log("O " + tenO(x, y) + " da ban roi, hay chon o khac.");
+            log("Ô " + tenO(x, y) + " đã bắn rồi, hãy chọn ô khác.");
             return;
         }
         app.send(Packet.of(PacketType.FIRE, String.valueOf(x), String.valueOf(y)));
@@ -511,11 +981,13 @@ public class GamePanel extends JPanel {
     /* ------------------------------------------------------------------ */
 
     public void enterRoom(RoomInfo info, boolean laChuPhong) {
-        tenPhong = (info == null ? "?" : "#" + info.id() + " - " + info.name())
-                + (laChuPhong ? "  (bạn là chủ phòng)" : "");
+        this.maPhong = (info == null) ? "?" : "#" + info.id();
+        this.tenPhongGoc = (info == null) ? "" : info.name();
+        this.laChuPhong = laChuPhong;
         doiThu = "-";
         capNhatTieuDe();
-        logArea.setText("");
+        capNhatChip(info == null ? null : info.state());
+        logPane.setText("");
         log("Đã vào phòng");
 
         moLaiNutGoiMay();
@@ -523,6 +995,8 @@ public class GamePanel extends JPanel {
         modelCuaMinh.clear();
         boardCuaMinh.xoaHet();
         boardDoiThu.xoaHet();
+        theCuaMinh.setSangLen(false);
+        theDoiThu.setSangLen(false);
     }
 
     public void updateRoomState(RoomInfo info, String nguoi1, String nguoi2) {
@@ -532,6 +1006,7 @@ public class GamePanel extends JPanel {
             doiThu = "-";
         }
         capNhatTieuDe();
+        capNhatChip(info == null ? null : info.state());
         statusLabel.setText("Trạng thái: " + (info == null ? "?" : info.state().moTa()));
 
         // Phong quay ve WAITING giua chung nghia la doi thu vua roi di.
@@ -552,12 +1027,20 @@ public class GamePanel extends JPanel {
         boardDoiThu.xoaHet();
         boardCuaMinh.setChoPhepClick(false);
         boardDoiThu.setChoPhepClick(false);
+        theCuaMinh.setSangLen(false);
+        theDoiThu.setSangLen(false);
         moLaiNutGoiMay();
         dieuKhienCards.show(dieuKhienPanel, THE_CHO);
     }
 
     private void capNhatTieuDe() {
-        roomLabel.setText("Phòng " + tenPhong + "   |   Đối thủ: " + doiThu);
+        String ten = tenPhongGoc == null || tenPhongGoc.isBlank()
+                ? "Phòng " + maPhong
+                : "Phòng " + maPhong + " · " + tenPhongGoc;
+        roomLabel.setText(ten);
+        chuPhongBadge.setVisible(laChuPhong);
+        doiThuLabel.setText(doiThu);
+        doiThuLabel.setForeground("-".equals(doiThu) ? CHU_MO : CHU);
     }
 
     /** PLACE_PHASE: du hai nguoi, bat dau (hoac choi lai) giai doan dat tau. */
@@ -580,6 +1063,10 @@ public class GamePanel extends JPanel {
         nutTau.get(tauDangChon).setSelected(true);
         setDatTauChoPhep(true);
 
+        theCuaMinh.setSangLen(true);
+        theDoiThu.setSangLen(false);
+        capNhatChip(RoomState.PLACING);
+
         dieuKhienCards.show(dieuKhienPanel, THE_DAT_TAU);
         setStatus("Hãy đặt đủ 5 tàu rồi bấm \"Sẵn sàng\".");
         log("Bắt đầu giai đoạn đặt tàu.");
@@ -587,6 +1074,7 @@ public class GamePanel extends JPanel {
 
     /** READY_OK: so do cua minh hop le, dang cho doi thu dat xong. */
     public void batDaSanSang() {
+        theCuaMinh.setSangLen(false);
         setStatus("Sơ đồ hợp lệ. Đang chờ đối thủ đặt tàu xong...");
         log("Sơ đồ đã được chấp nhận.");
     }
@@ -595,6 +1083,7 @@ public class GamePanel extends JPanel {
     public void batDauVanDau(String nguoiDiTruoc) {
         dieuKhienCards.show(dieuKhienPanel, THE_TRAN_DAU);
         boardCuaMinh.setChoPhepClick(false);
+        capNhatChip(RoomState.PLAYING);
         log("Ván đấu bắt đầu. Người đi trước: " + nguoiDiTruoc);
     }
 
@@ -602,6 +1091,9 @@ public class GamePanel extends JPanel {
     public void capNhatLuot(String tenNguoiDangDanh, int giaySuyNghi) {
         luotCuaMinh = app.getUsername().equals(tenNguoiDangDanh);
         boardDoiThu.setChoPhepClick(luotCuaMinh);
+        theDoiThu.setSangLen(luotCuaMinh);
+        theCuaMinh.setSangLen(!luotCuaMinh);
+        capNhatChip(RoomState.PLAYING);
         setStatus(luotCuaMinh
                 ? "Đến lượt bạn - bấm vào bàn cờ đối thủ để bắn."
                 : "Đối thủ (" + tenNguoiDangDanh + ") đang bắn...");
@@ -645,6 +1137,9 @@ public class GamePanel extends JPanel {
         dungDongHo();
         luotCuaMinh = false;
         boardDoiThu.setChoPhepClick(false);
+        theDoiThu.setSangLen(false);
+        theCuaMinh.setSangLen(false);
+        capNhatChip(RoomState.PAUSED);
 
         log(tenDoiThu + " mất kết nối. Ván đấu tạm dừng, chờ họ vào lại trong "
                 + giayAnHan + " giây.");
@@ -675,7 +1170,7 @@ public class GamePanel extends JPanel {
     }
 
     private void veDongHoAnHan(String tenDoiThu) {
-        dongHoLabel.setForeground(new java.awt.Color(0xB9770E));
+        dongHoLabel.setForeground(CAM);
         dongHoLabel.setText(giayConLai > 0
                 ? "Chờ " + tenDoiThu + " vào lại: " + giayConLai + " giây"
                 : "Hết thời gian chờ");
@@ -684,6 +1179,7 @@ public class GamePanel extends JPanel {
     /** OPPONENT_BACK: doi thu vao lai duoc. Server se gui TURN ngay sau. */
     public void doiThuVaoLai(String tenDoiThu) {
         dungDongHo();
+        capNhatChip(RoomState.PLAYING);
         log(tenDoiThu + " đã vào lại. Ván đấu tiếp tục.");
         setStatus("Ván đấu tiếp tục.");
     }
@@ -758,6 +1254,8 @@ public class GamePanel extends JPanel {
         dungDongHo();
         dongHoLabel.setText(" ");
         boardDoiThu.setChoPhepClick(false);
+        theCuaMinh.setSangLen(false);
+        theDoiThu.setSangLen(false);
         boolean thang = Protocol.RESULT_WIN.equals(ketQua);
         boolean doiThuBoDi = Protocol.REASON_OPPONENT_LEFT.equals(lyDo);
         boolean doiThuRotMang = Protocol.REASON_OPPONENT_LOST.equals(lyDo);
@@ -838,7 +1336,7 @@ public class GamePanel extends JPanel {
     }
 
     public void onChat(String nguoiGui, String noiDung) {
-        log("[" + nguoiGui + "] " + noiDung);
+        themDong(LocalTime.now().format(TIME_FMT), nguoiGui, noiDung, CHU);
     }
 
     public void setStatus(String text) {
@@ -846,7 +1344,6 @@ public class GamePanel extends JPanel {
     }
 
     public void log(String text) {
-        logArea.append("[" + LocalTime.now().format(TIME_FMT) + "] " + text + "\n");
-        logArea.setCaretPosition(logArea.getDocument().getLength());
+        themDong(LocalTime.now().format(TIME_FMT), null, text, new Color(0x37, 0x41, 0x51));
     }
 }
