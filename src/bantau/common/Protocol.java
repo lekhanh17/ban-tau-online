@@ -164,9 +164,9 @@ public final class Protocol {
     static {
         if (!(BOT_PREFIX + "x1").matches(NAME_PATTERN)) {
             throw new ExceptionInInitializerError(
-                    "BOT_PREFIX \"" + BOT_PREFIX + "\" khong khop NAME_PATTERN "
-                            + NAME_PATTERN + " - ten bot se bi tu choi khi dang nhap. "
-                            + "Chi dung chu cai ASCII khong dau, so va dau gach duoi.");
+                    "BOT_PREFIX \"" + BOT_PREFIX + "\" không khớp NAME_PATTERN "
+                            + NAME_PATTERN + " - tên bot sẽ bị từ chối khi đăng nhập. "
+                            + "Chỉ dùng chữ cái ASCII không dấu, số và dấu gạch dưới.");
         }
     }
 
