@@ -464,7 +464,7 @@ public class Room {
             return loi;
         }
 
-        // Van dau vua ket thuc: mo luon mot van moi cho hai nguoi choi lai.
+        // Ván đấu vừa kết thúc: mở ván mới cho hai người chơi lại.
         if (game.isFinished()) {
             batDauDatTau();
             manager.broadcastRoomList();
