@@ -464,7 +464,7 @@ public class Room {
             return loi;
         }
 
-        // Ván đấu vừa kết thúc: mở ván mới cho hai người chơi lại.
+        // Ván đấu vừa kết thúc: mở ván mới cho 2 người chơi lại.
         if (game.isFinished()) {
             batDauDatTau();
             manager.broadcastRoomList();
