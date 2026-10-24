@@ -450,7 +450,7 @@ public class Room {
         }
     }
 
-    /** @return null neu hop le, nguoc lai la ma loi */
+    /** @return null nếu hợp lệ */
     public synchronized String handleFire(ClientHandler c, int x, int y) {
         if (!contains(c)) {
             return Protocol.E_NOT_IN_ROOM;
