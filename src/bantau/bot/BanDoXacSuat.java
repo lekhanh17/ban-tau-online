@@ -418,7 +418,7 @@ public final class BanDoXacSuat implements ChienThuatBan {
         return nhoNhat;
     }
 
-    /** Luoi an toan cuoi cung - gan nhu khong bao gio dung den. */
+    /** Lưới an toàn cuối cùng - gần như ko dùng đến. */
     private int[] oNgauNhienChuaBan(Random rnd) {
         List<int[]> conLai = new ArrayList<>();
         for (int x = 0; x < Board.SIZE; x++) {
