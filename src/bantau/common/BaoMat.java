@@ -59,7 +59,7 @@ public final class BaoMat {
     }
 
     /**
-     * DUNG BO MA TLS TU FILE KHO KHOA.
+     * DÙNG BỘ MÃ TLS TU FILE KHO KHOA.
      *
      * <p><b>Vi sao khong dung {@code System.setProperty} nhu cach thong
      * thuong:</b> cach dat thuoc tinh he thong roi goi
