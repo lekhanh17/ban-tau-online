@@ -381,7 +381,7 @@ public class BoardView extends JPanel {
     }
 
     /**
-     * BAN CO DOI THU: chi ve nhung con tau DA CHIM HAN.
+     * BÀN CỜ ĐỐI THỦ: chi ve nhung con tau DA CHIM HAN.
      *
      * <p>Minh khong biet tau doi thu nam o dau cho den khi ban chim no. Luc
      * do cac o SUNK nam lien nhau chinh la hinh dang con tau, nen ta gom
