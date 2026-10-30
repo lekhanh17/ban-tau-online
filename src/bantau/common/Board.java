@@ -16,15 +16,6 @@ import java.util.Random;
  *   <li>Server: ban sao DUY NHAT co gia tri phap ly. Moi phat ban deu tinh
  *       tren ban do cua server nen client khong the gian lan.</li>
  * </ul>
- *
- * <p>Quy uoc toa do: {@code grid[x][y]} voi x la cot (trai sang phai),
- * y la hang (tren xuong duoi), goc trai tren la (0,0).
- *
- * <p><b>CANH BAO BAO MAT:</b> lop nay Serializable nen client co the gui
- * nguyen doi tuong Board len server. Nhung Java khoi phuc doi tuong ma
- * KHONG GOI CONSTRUCTOR - moi rang buoc trong constructor bi bo qua.
- * Vi vay server BAT BUOC phai goi {@link #kiemTraHopLe()} sau khi nhan,
- * khong duoc tin ban do client gui len.
  */
 public class Board implements Serializable {
 

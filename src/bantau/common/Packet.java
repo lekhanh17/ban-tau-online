@@ -57,7 +57,7 @@ public final class Packet implements Serializable {
         return args.size();
     }
 
-    /** Lay tham so thu i. Tra ve chuoi rong neu khong co - tranh loi mang. */
+    /** Lay tham so thu i. Tra ve chuoi rong neu khong co */
     public String arg(int i) {
         return i >= 0 && i < args.size() ? args.get(i) : "";
     }
@@ -80,10 +80,8 @@ public final class Packet implements Serializable {
     }
 
     /**
-     * Lay payload & ep kieu an toan.
-     *
-     * <p>Neu ben kia gui sai kieu thi tra ve null thay vi nem
-     * ClassCastException - chuong trinh khong sap.
+      Lay payload & ep kieu.
+      <p>Neu ben kia gui sai kieu thi tra ve null
      */
     public <T> T payload(Class<T> cls) {
         return cls.isInstance(payload) ? cls.cast(payload) : null;

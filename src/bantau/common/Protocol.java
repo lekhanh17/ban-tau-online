@@ -29,25 +29,8 @@ public final class Protocol {
      */
     public static final int PING_INTERVAL_SECONDS = 10;
 
-    /** Khong nghe thay gi tu client qua ngan nay giay thi coi nhu da chet. */
+    /** Khong nghe thay gi tu client thi coi nhu mat ket noi. PING/PONG */
     public static final int TIMEOUT_SECONDS = 30;
-
-    /**
-     * THOI GIAN AN HAN DE VAO LAI VAN DANG DO.
-     *
-     * <p>Khi mot nguoi dang danh bi mat ket noi, server KHONG xu thua ngay.
-     * No giu nguyen phong va toan bo ban do trong ngan nay giay, cho nguoi
-     * do dang nhap lai. Qua han ma khong thay thi nguoi con lai moi duoc
-     * xu thang.
-     *
-     * <p><b>Vi sao can:</b> Wi-Fi chap chon, rut day mang, may ngu dong hay
-     * chuong trinh bi tat dot ngot la chuyen thuong. Xu thua ngay lap tuc
-     * vi mot su co mang vai giay la trai nghiem rat te, va cung khong dung
-     * tinh than cua mot he thong mang chiu loi.
-     *
-     * <p>Thoi gian nay phai LON HON {@link #TIMEOUT_SECONDS}, vi server chi
-     * biet client da chet sau khi het thoi gian cho PONG.
-     */
     public static final int RECONNECT_SECONDS = 60;
 
     /* ===== Gioi han phong ===== */

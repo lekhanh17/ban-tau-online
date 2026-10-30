@@ -56,8 +56,7 @@ public class ServerConnection {
         socket.setTcpNoDelay(true);
         System.out.println("[KET NOI] " + BaoMat.moTaKetNoi(socket));
 
-        // THU TU BAT BUOC: luong ra truoc, flush(), roi moi luong vao.
-        // Nguoc lai hai ben cung cho header cua nhau - treo vinh vien.
+        // luong ra truoc, flush(), roi moi luong vao.
         out = new ObjectOutputStream(socket.getOutputStream());
         out.flush();
         in = new ObjectInputStream(socket.getInputStream());

@@ -178,8 +178,7 @@ public final class BaoMat {
         // Tham so cuoi: dong luon socket goc khi dong socket SSL.
         SSLSocket ssl = (SSLSocket) factory.createSocket(socket, host, port, true);
 
-        // Bat tay TLS ngay bay gio de loi chung chi lo ra o day, chu khong
-        // phai lo ra giua chung khi dang doc du lieu.
+        // Bat tay TLS ngay bay gio de loi chung chi lo ra o day, chu khong phai lo ra giua chung khi dang doc du lieu.
         ssl.startHandshake();
         return ssl;
     }

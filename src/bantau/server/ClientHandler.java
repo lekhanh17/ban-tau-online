@@ -46,7 +46,7 @@ public class ClientHandler implements Runnable {
      * ObjectInputStream. Nguoc lai hai ben cung cho header cua nhau - treo
      * vinh vien ma khong bao loi.
      */
-    public ClientHandler(Socket socket) throws IOException {
+    public ClientHandler(Socket socket) throws IOException { // dong/mo goi
         this.socket = socket;
         this.out = new ObjectOutputStream(socket.getOutputStream());
         this.out.flush();
@@ -89,8 +89,7 @@ public class ClientHandler implements Runnable {
         try {
             out.writeObject(packet);
             out.flush();
-            // Xoa bo dem doi tuong. Bo dong nay thi lan sau gui cung mot
-            // doi tuong se chi gui tham chieu cu - ben nhan nhan du lieu cu.
+            // Xoa bo dem doi tuong. Bo dong nay thi lan sau gui cung mot doi tuong se chi gui tham chieu cu
             out.reset();
         } catch (IOException e) {
             System.out.println("Không gửi được tới " + getUsername() + ": " + e.getMessage());
@@ -102,7 +101,7 @@ public class ClientHandler implements Runnable {
     }
 
     /* ------------------------------------------------------------------ */
-    /* Vòng đời                                                          */
+    /* Vòng lặp                                                         */
     /* ------------------------------------------------------------------ */
 
     @Override

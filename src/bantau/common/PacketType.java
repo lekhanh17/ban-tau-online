@@ -105,15 +105,6 @@ public enum PacketType {
     /** Doi thu da vao lai duoc, van dau tiep tuc. args[0] = ten doi thu. */
     OPPONENT_BACK,
     /**
-     * KHOI PHUC TOAN BO TRANG THAI VAN DAU cho nguoi vua vao lai.
-     *
-     * <p>payload = {@link Board} THAT cua chinh nguoi do (ke ca cac o da bi
-     * ban), args[0] = ten doi thu, args[1] = chuoi 100 ky tu mo ta nhung gi
-     * nguoi do DA BIET ve ban do doi thu, args[2] = ten nguoi dang danh
-     * luot, args[3] = so giay con lai cua luot.
-     *
-     * <p>Chu y args[1] chi chua thong tin nguoi do da ban ra duoc, khong he
-     * tiet lo vi tri tau doi thu o nhung o chua ban.
-     */
+     * KHOI PHUC TOAN BO TRANG THAI VAN DAU cho nguoi vua vao lai.*/
     RESUME_DATA
 }
